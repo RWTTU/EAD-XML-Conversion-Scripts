@@ -34,7 +34,9 @@ else {
 
 # Filter out blank rows using the Where-Object cmdlet
 $excelFile = Import-Excel -Path $filePath
-$csvFile = $excelFile | Where-Object { $_.PSObject.Properties.Value -notcontains "" }
+#$csvFile = $excelFile #| Where-Object { $_.PSObject.Properties.Value -notcontains "" }
+$csvFile = $excelFile | Where-Object { ($_.PSObject.Properties.Value | ForEach-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0 }
+
 
 # Create a new XML document
 $xml = New-Object System.Xml.XmlDocument
@@ -44,7 +46,13 @@ $elementStack = New-Object System.Collections.Generic.Stack[System.Xml.XmlElemen
 
 # Create Root Element
 $rootElement = $xml.CreateElement("RootElement")
-$xml.AppendChild($rootElement)
+$xml.AppendChild($rootElement)  | Out-Null
+
+function ConvertToXml {
+    param(
+        [Parameter(Mandatory=$true)] $csvFile,
+        [Parameter(Mandatory=$true)] $xml
+    )
 
 
 #########################################
@@ -76,14 +84,13 @@ foreach ($row in $csvFile) {
     $cNum = "{0:D2}" -f [int]$row.'c0#'
     
     $hierarchy = [int]$row.'c0#'
-    $innerText = $row.InnerText
-
+    
     # Create a new cNum element
     $newElement = $xml.CreateElement("c${cNum}")
     
     # Create the 'did' element for new element. 
-    $did = $xml.CreateElement("did")
-    $newElement.AppendChild($did)
+    $did = $xml.CreateElement("did") 
+    $newElement.AppendChild($did) | Out-Null
 
     # Check if the 'c0#' header exists
     if (!$row.'c0#') {
@@ -93,12 +100,12 @@ foreach ($row in $csvFile) {
 
     # Set Series ID 
     if ($row.'Series ID') {
-        $newElement.SetAttribute("id", $row.'Series ID')
+        $newElement.SetAttribute("id", $row.'Series ID') | Out-Null
     }
 
     # Set Level
     if ($row.Attribute) {
-        $newElement.SetAttribute("level", $row.'Attribute')
+        $newElement.SetAttribute("level", $row.'Attribute') | Out-Null
     }
     
     # Check if the 'Box' header exists
@@ -106,17 +113,17 @@ foreach ($row in $csvFile) {
         # Create Container Element.
         $box = $xml.CreateElement("container")
         # Add Container  Inner Text
-        $box.InnerText = $row.Box
+        $box.InnerText = $row.Box 
         # Add Attribute
-        $box.SetAttribute("type", "box")
-        $newElement.AppendChild($box)
+        $box.SetAttribute("type", "box") | Out-Null
+        $newElement.AppendChild($box) | Out-Null
     } # If not series or subseries populate empty value if no value given. 
     elseif ($row.Attribute -notin 'subseries', 'series') {
         # Create Container Element.
         $box = $xml.CreateElement("container")
         # Add Attribute
-        $box.SetAttribute("type", "box")
-        $newElement.AppendChild($box)
+        $box.SetAttribute("type", "box")  | Out-Null
+        $newElement.AppendChild($box) | Out-Null
     }
 
     # Check if the 'File' header exists
@@ -126,8 +133,8 @@ foreach ($row in $csvFile) {
         # Add Container  Inner Text
         $file.InnerText = $row.File
         # Add Attribute
-        $file.SetAttribute("type", "folder")
-        $newElement.InsertAfter($file, $box)
+        $file.SetAttribute("type", "folder")  | Out-Null
+        $newElement.InsertAfter($file, $box) | Out-Null
     } # If not series or subseries populate empty value if no value given. 
     elseif ($row.Attribute -notin 'subseries', 'series') {
         # Create Container Element.
@@ -135,8 +142,8 @@ foreach ($row in $csvFile) {
         # Add Container  Inner Text
         $file.InnerText = $null
         # Add Attribute
-        $file.SetAttribute("type", "folder")
-        $newElement.AppendChild($file)
+        $file.SetAttribute("type", "folder")  | Out-Null
+        $newElement.AppendChild($file) | Out-Null
     }
 
     # Check if the 'Title' header exists
@@ -144,7 +151,7 @@ foreach ($row in $csvFile) {
         # Create the 'unittitle' child element of 'did' and set its inner text
         $unittitle = $xml.CreateElement("unittitle")
         $unittitle.InnerText = $row.'Title'
-        $did.AppendChild($unittitle)
+        $did.AppendChild($unittitle) | Out-Null
     }
 
     # Check if the 'Date' header exists
@@ -152,32 +159,32 @@ foreach ($row in $csvFile) {
         # Create unitdate Element.
         $unitdate = $xml.CreateElement("unitdate")
         # Add Inner Text
-        $unitdate.InnerText = $row.Date
+        $unitdate.InnerText = $row.Date 
         # Add Attribute
-        $unitdate.SetAttribute("calendar", "gregorian")
-        $unitdate.SetAttribute("normal", "")
-        $unittitle.InsertAfter($unitdate, $unittitle.LastChild)
+        $unitdate.SetAttribute("calendar", "gregorian")  | Out-Null
+        $unitdate.SetAttribute("normal", "")  | Out-Null
+        $unittitle.InsertAfter($unitdate, $unittitle.LastChild) | Out-Null
     }
     
     # Handle the hierarchy
     if ($elementStack.Count -eq 0) {
         # If the stack is empty, add the element as a child of the root
-        $rootElement.AppendChild($newElement)
+        $rootElement.AppendChild($newElement) | Out-Null
     }
     elseif ($hierarchy -lt $elementStack.Peek().Name.Substring(1)) {
         # If the hierarchy is less than the current open element, close the open element and add the new element
         while ($hierarchy -lt $elementStack.Peek().Name.Substring(1)) {
             $elementStack.Pop()
         }
-        $elementStack.Peek().ParentNode.AppendChild($newElement)
+        $elementStack.Peek().ParentNode.AppendChild($newElement) | Out-Null
         # If the hierarchy is equal to the previous element, append to its parent. 
     }
     elseif ($hierarchy -eq $elementStack.Peek().Name.Substring(1)) {
-        $elementStack.Peek().ParentNode.AppendChild($newElement)
+        $elementStack.Peek().ParentNode.AppendChild($newElement) | Out-Null
     }
     else {
         # Add the new element as a child of the current open element
-        $elementStack.Peek().AppendChild($newElement)
+        $elementStack.Peek().AppendChild($newElement) | Out-Null
     }
 
     # Push the new element onto the stack
@@ -185,7 +192,9 @@ foreach ($row in $csvFile) {
     
 }
 
-# Save the XML document to a file
-$xml.Save("C:\git\EAD-XML-Conversion-Scripts\test\output.xml")
+}
 
-type C:\git\EAD-XML-Conversion-Scripts\test\output.xml
+# Save the XML document to a file
+$xml.Save("C:\git\EAD-XML-Conversion-Scripts\test\output.xml") | Out-Null
+
+#type C:\git\EAD-XML-Conversion-Scripts\test\output.xml
