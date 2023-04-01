@@ -13,7 +13,7 @@ c2
 
 - series and subseris do not have to have dates 
 - files and items must have dates 
-- on file or item if there is no box or file number, leave the code 
+**** - on file or item if there is no box or file number, leave the code -- !!!! Which format
 
 
 Options for c# series, subseries, file, item 
