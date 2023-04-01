@@ -1,34 +1,87 @@
-﻿
+﻿#################
+# DATE PATTERNS #
+#################
+
+# Regex pattern for Case 1: October-December, 2001
+$regex_case1 = "(?i)([a-z]+).?\s*-\s*([a-z]+)\s*.?\s*(\d{4})"
+
+# Regex pattern for Case 2: January 24, 2014 - February 24, 2018 and a few variations
+$regex_case2 = "(?i)([a-z]+)\s*,?\s*\b(\d{1,2})?(?:nd|st|rd|th)?\b\s*,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-z]+)\s*,?\s*\b(\d{1,2})?(?:nd|st|rd|th)?\b\s*,?\s*(\d{4})?)"
+
+# Regex pattern for Case 3: Some date and undated
+$regex_case3 = "(?i)(\d{4})?(?:-(\d{4}))?.*(?:\s*and\s*)?undated"
+
+# Regex pattern for Case 4: c 1790s, and 1790s
+$regex_case4 = "(?i)^(c\.?\s+)?(\d{4})s$"
+
+# Regex pattern for Case 5: 1970s-1980s
+$regex_case5 = "(?i)^\s*(\d{4})s\s*-\s*(\d{4})s\s*$"
+
+# Regex pattern for Case 6: October, 2001
+$regex_case6 = "(?i)^[a-z]+,?\s*(\d{4})$"
+
+# Regex pattern for Case 7: Spring, 2001
+$regex_case7 = "(?i)spring|fall|summer|winter"
+
+# Regex pattern for Case 8: October 16, 2001
+$regex_case8 = "(?i)([a-z]+)\s*(\d{1,2})(?:nd|st|rd|th)?\s*,?\s*(\d{4})"
+
+# Regex pattern for Case 9: October 16-18, 2001
+$regex_case9 = "(?i)([a-z]+)\s*(\d{1,2})(?:nd|st|rd|th)?\s*(?:.{1,2})\s*\b(\d{1,2})(?:nd|st|rd|th)?,\s*(\d{4})"
+
+# Regex pattern for Case 10: c. 1945-1947
+$regex_case10 = "(?i)^\s*c.\s*(\d{4})\s*-\s*(\d{4})\s*$"
+
+# Regex pattern for Case 11: 1945 and c. 1946
+$regex_case11 = "(?i)^\s*(?:c.|circa)?\s*(\d{4})$"
+
+# Regex pattern for Case 12: 1942, 1045, 1945-1947
+$regex_case12 = "(\d.*\d)"
+
+
+##############
+# FORMAT XML #
+##############
+
 function Format-Xml {
-<#
-.SYNOPSIS
-Format the incoming object as the text of an XML document.
-#>
+    <#
+    .SYNOPSIS
+    Formats an array of strings as the text of an XML document.
+    #>
+    [CmdletBinding()]
     param(
-        ## Text of an XML document.
         [Parameter(ValueFromPipeline = $true)]
+        [ValidateNotNullOrEmpty()]
         [string[]]$Text
     )
 
     begin {
         $data = New-Object System.Collections.ArrayList
     }
+
     process {
-        [void] $data.Add($Text -join "`n")
+        $data.Add($Text -join "`n") | Out-Null
     }
+
     end {
-        $doc=New-Object System.Xml.XmlDataDocument
+        $doc = New-Object System.Xml.XmlDocument
         $doc.LoadXml($data -join "`n")
-        $sw=New-Object System.Io.Stringwriter
-        $writer=New-Object System.Xml.XmlTextWriter($sw)
+        $sw = New-Object System.IO.StringWriter
+        $writer = New-Object System.Xml.XmlTextWriter($sw)
         $writer.Formatting = [System.Xml.Formatting]::Indented
         $doc.WriteContentTo($writer)
         $sw.ToString()
     }
 }
 
- 
- function Import-Xls 
+
+
+##############
+# IMPORT XLS #
+##############
+
+
+function Import-Xls 
 { 
 
 <# 
@@ -188,204 +241,166 @@ Modified: 2011-04-09
     } 
 } 
 
-Function Get-FileName($initialDirectory)
-{   
- [System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms") |
- Out-Null
 
- $OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
- $OpenFileDialog.initialDirectory = $initialDirectory
- $OpenFileDialog.filter = "All files (*.*)| *.*"
- $OpenFileDialog.ShowDialog() | Out-Null
- $OpenFileDialog.filename
-} #end function Get-FileName
+##################
+# GET FILE NAMES #
+##################
+
+function Get-FileName {
+    <#
+    .SYNOPSIS
+    Opens a dialog box that allows the user to select a file from the file system.
+
+    .DESCRIPTION
+    The Get-FileName function opens an Open File dialog box that allows the user to select a file from the file system. The selected file's name (including the full path) is returned as the output of the function.
+
+    .PARAMETER InitialDirectory
+    The initial directory to display in the Open File dialog box. If no value is specified, the current working directory is used.
+
+    .EXAMPLE
+    PS C:\> Get-FileName -InitialDirectory "C:\Users\JohnDoe\Desktop"
+
+    This example opens the Open File dialog box with the initial directory set to "C:\Users\JohnDoe\Desktop".
+
+    .OUTPUTS
+    System.String
+    The name of the selected file, including the full path.
+
+    .NOTES
+    This function uses the System.Windows.Forms .NET assembly to create an Open File dialog box.
+    #>
+    [CmdletBinding()]
+    param (
+        [string]$InitialDirectory = $PWD
+    )
+
+    Add-Type -AssemblyName System.Windows.Forms | Out-Null
+
+    $OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+    $OpenFileDialog.InitialDirectory = $InitialDirectory
+    $OpenFileDialog.Filter = "All files (*.*)| *.*"
+    if ($OpenFileDialog.ShowDialog() -eq 'OK') {
+        return $OpenFileDialog.FileName
+    }
+}
 
 
-###########################################################
+##################
+# DATE FUNCTIONS #
+##################
+
+
 #convert date to number 
-function convert-Date{
-param($inDate)
+function Convert-Date {
+    param($inDate)
 
-if($inDate -like "Jan*"){return "01" }
-if($inDate -like "Feb*"){return "02" }
-if($inDate -like "Mar*"){return "03" }
-if($inDate -like "Apr*"){return "04" }
-if($inDate -like "May"){return "05" }
-if($inDate -like "Jun*"){return "06"}
-if($inDate -like "Jul*"){return "07" }
-if($inDate -like "Aug*"){return "08" }
-if($inDate -like "Sep*"){return "09" }
-if($inDate -like "Oct*"){return "10" }
-if($inDate -like "Nov*"){return "11"}
-if($inDate -like "Dec*"){return "12" }
+    $monthMapping = @{
+        'Jan' = '01'
+        'Feb' = '02'
+        'Mar' = '03'
+        'Apr' = '04'
+        'May' = '05'
+        'Jun' = '06'
+        'Jul' = '07'
+        'Aug' = '08'
+        'Sep' = '09'
+        'Oct' = '10'
+        'Nov' = '11'
+        'Dec' = '12'
+    }
 
+    foreach ($month in $monthMapping.Keys) {
+        if ($inDate -like "$month*") {
+            return $monthMapping[$month]
+        }
+    }
 }
 
+function Get-EndOfDecade {
+    param(
+        [int]$Year
+    )
 
-#$seasons = "Spring*", "Summer*", "Fall*", "Winter*"
-
-#$outpath = "C:\Users\Micheal\Documents\temp\dateConversion" + $(get-date).Tobinary() + ".csv"
-
-#$("Date,DateCoded") >> $outpath
-
-function endOfDecade{
-
-    $year = $args[0]
-    $year = $year - 0
-    $year = $year + 9 
-
-    return $year
-
+    $endYear = ($Year - ($Year % 10)) + 9
+    return $endYear
 }
 
-function minDate{
-param($csv1, $minrun)
+function minDate {
+    param($csv1, $minrun)
 
-$minyear = 0  
-$maxyear = 0
-    
-     foreach($i in $csv1){
+    $years = @()
 
-        if($i.Date -eq $null){continue}
-        <#write-host $minyear -BackgroundColor Green -ForegroundColor Black
-        write-host $maxyear -BackgroundColor Cyan -ForegroundColor Black
-        write-host $i.Date -BackgroundColor Red#>
+    foreach ($i in $csv1) {
+        if ($i.Date -eq $null) { continue }
 
-        if($minyear -eq 0 -or $maxyear -eq 0){
-            if ($i.Date -match "(\d{4})"){ $minyear = $matches[1]; $maxyear = $matches[1]; }
-         }
-        ###########Start Matching#############
-        # 1 October-December, 2001
-        if($i.Date -match "([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\s*(\d{4})"){
-            $year = $matches[3]; 
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year -lt $minyear){$minyear = $year}
-            continue
-        }
-        # 2 January 24, 2014 - February 24, 2018 and a few variations Done
-       if($i.Date -match "([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?)" -and $i.Date -notlike "*undated*"){
-            #$year = $matches[3]; $year2 = $matches[7];
-            
-            #if($matches[3] -eq $null -and  $matches[7] -eq $null){continue}
-            if($matches[3]){ $year = $matches[3];
-                if($year -gt $maxyear){$maxyear = $year}
-                if($year -lt $minyear){$minyear = $year}
+        $date = $i.Date
+
+        $year, $year2 = $null, $null
+
+        if ($date -match "(\d{4})") { $year = $matches[1] }
+
+        switch -Regex ($date) {
+            # Case 1: October-December, 2001
+            $regex_case1 { $year = $matches[3] }
+            # Case 2: January 24, 2014 - February 24, 2018 and a few variations
+            $regex_case2 {
+                if ($matches[3]) { $year = $matches[3] }
+                if ($matches[7]) { $year2 = $matches[7] }
             }
-            if($matches[7]){$year2 = $matches[7];
-                if($year2 -gt $maxyear){$maxyear = $year2}
-                if($year2 -lt $minyear){$minyear = $year2}
+            # Case 3: undated
+            $regex_case3 {
+                if ($matches[1]) { $year = $matches[1] }
+                if ($matches[2]) { $year2 = $matches[2] }
             }
-            continue
-        }
-        #3 undated      (\d{4})?(?:-(\d{4}))?(?:\s*and\s*)?undated
-        if($i -match "(\d{4})?(?:-(\d{4}))?.*(?:\s*and\s*)?undated"){
-            $year = $null; $year2=$null;
-            if($matches[1]){$year = $matches[1]}
-            if($matches[2]){$year2 = $matches[2]}
-            if($matches[1] -eq $null -and $matches[2] -eq $null){
-                continue
-            }elseif($year -ne $null -and $year2 -ne $null){
-                if($year -gt $maxyear){$maxyear = $year}
-                if($year -lt $minyear){$minyear = $year}
-                if($year2 -gt $maxyear){$maxyear = $year2}
-                if($year2 -lt $minyear){$minyear = $year2}
-                continue
-            }else{
-                if($year -gt $maxyear){$maxyear = $year}
-                if($year -lt $minyear){$minyear = $year}            
-                continue
+            # Case 4: c 1790s, and 1790s
+            $regex_case4 {
+                $year = $matches[2]
+                $year2 = Get-EndOfDecade -Year $year
+            }
+            # Case 5: 1970s-1980s
+            $regex_case5 {
+                $year = $matches[1]
+                $year2 = Get-EndOfDecade -Year $matches[2]
+            }
+            # Case 6: October, 2001
+            $regex_case6 {
+                if (-not ($date -like "Spring*" -or $date -like "Fall*" -or $date -like "Summer*" -or $date -like "Winter*" -or $date -inotlike "circa*")) {
+                    $year = $matches[1]
+                }
+            }
+            # Case 7: Spring, 2001
+            $regex_case7 {
+                if ($date -match "(\d{4})$") { $year = $matches[1] }
+            }
+            # Case 8: October 16, 2001
+            $regex_case8 { $year = $matches[3] }
+            # Case 9: October 16-18, 2001
+            $regex_case9 { $year = $matches[4] }
+            # Case 10: c. 1945-1947
+            $regex_case10 {
+                $year = $matches[1]
+                $year2 = $matches[2]
+            }
+            # Case 11: 1945 and c. 1946
+            $regex_case11 { $year = $matches[1] }
+            # Case 12: 1942, 1045, 1945-1947
+            $regex_case12 {
+                $str2 = $matches[1]
+                $str2 = $str2 -replace ",\s*|\s*-\s*", ","
+                $str3 = $str2.Split(",")
+                $min = $str3 | Measure-Object -Minimum -Maximum
+                $year = $min.Minimum
+                $year2 = $min.Maximum
             }
         }
-         # 4 c 1790s, and 1790s
-        if($i.Date -match "^(c\.?\s+)?(\d{4})s$"){ 
-            $year = $matches[2];
-            $year2 = endOfDecade $year
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year -lt $minyear){$minyear = $year}
-            if($year2 -gt $maxyear){$maxyear = $year2}
-            if($year2 -lt $minyear){$minyear = $year2}
-            continue
-        }
-        # 5 1970s-1980s Done
-        if($i.Date -match "^\s*(\d{4})s\s*-\s*(\d{4})s\s*$"){
-            $year = $matches[1];
-            $year2 = $matches[2];
-            $year2 = endOfDecade $year2;
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year -lt $minyear){$minyear = $year}
-            if($year2 -gt $maxyear){$maxyear = $year2}
-            if($year2 -lt $minyear){$minyear = $year2}
-            continue
-        }
-        # 6 October, 2001 Done
-        if($i.Date -match "^[a-zA-Z]+,?\s*(\d{4})$" -and   $i.Date -notlike "Spring*" -and   $i.Date -notlike "Fall*" -and   $i.Date -notlike "Summer*" -and   $i.Date -notlike "Winter*" -and   $i.Date -inotlike "circa*"){
-            #write-host $matches[1]
-            $year = $matches[1]
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year -lt $minyear){$minyear = $year}
-            continue
-        }
-        # 7 Spring, 2001 Done
-        if($i.Date -like "Spring*" -or   $i.Date -like "Fall*" -or   $i.Date -like "Summer*" -or   $i.Date -like "Winter*"){
-            if ($i.Date -match "(\d{4})$"){ $year = $matches[1]}
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year -lt $minyear){$minyear = $year}
-            continue
-        }
-        # 8 October 16, 2001 Done
-        if($i.Date -match "([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*,?\s*(\d{4})"){$year = $matches[3]; 
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year -lt $minyear){$minyear = $year}
-        continue
-        }
-        # 9 October 16-18, 2001 Done
-        if($i.Date -match "([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*(?:.{1,2})\s*\b(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?,\s*(\d{4})"){
-            $year = $matches[4];
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year -lt $minyear){$minyear = $year}
-            continue
-        }
-        # 10 c. 1945-1947 Done
-        if($i.Date -match "^\s*c.\s*(\d{4})\s*-\s*(\d{4})\s*$"){
-            $year = $matches[1]; $year2 = $matches[2];
-            if($year -lt $minyear){$minyear = $year}
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year2 -lt $minyear){$minyear = $year2}
-            if($year2 -gt $maxyear){$maxyear = $year2}
-            continue
-         }
-         # 11 1945 and c. 1946 Done
-        if($i.Date -match "^\s*(?:c.|[cC][iI][Rr][cC][aA].?)?\s*(\d{4})$"){
-            $year = $matches[1];
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year -lt $minyear){$minyear = $year}
-            continue
-        }   
-        # 13 1942, 1045, 1945-1947 Done
-        if($i.Date -match "(\d.*\d)"){ $str2 = $matches[1];  
-            $str2 = $str2 -replace ",\s*|\s*-\s*" , ",";
-            $str3 = $str2.Split(",");
-            $min = $str3 | measure -Minimum -Maximum;
-            $year = $min.Minimum;
-            $year2 = $min.Maximum;
-            $year = $year.ToString();
-            $year2 = $year2.ToString();
-            if($year -lt $minyear){$minyear = $year}
-            if($year -gt $maxyear){$maxyear = $year}
-            if($year2 -lt $minyear){$minyear = $year2}
-            if($year2 -gt $maxyear){$maxyear = $year2}
-            continue
-        }
-         
     
-    }   
+            if ($year) { $years += $year }
+            if ($year2) { $years += $year2 }
+    }
     
-    if($minrun -eq 0){return $minyear;}else{return $maxyear;}
+    if ($minrun -eq 0) { return ($years | Measure-Object -Minimum).Minimum }
+    else { return ($years | Measure-Object -Maximum).Maximum }
 }
-    
-    
-
-
 
 function codedDate{
 $year = ""
@@ -399,15 +414,15 @@ $minyear = $args[1]
 $maxyear = $args[2]
     
     # 1 October-December, 2001
-    if($i -match "([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\s*(\d{4})"){
-        $year = $matches[3]; $month = convert-Date $matches[1]; $month2 = convert-Date $matches[2];
+    if($i -match $regex_case1 ){
+        $year = $matches[3]; $month = Convert-Date $matches[1]; $month2 = Convert-Date $matches[2];
         return $($year+"-"+$month+"/"+$year+"-"+$month2) 
     }
     # 2 January 24, 2014 - February 24, 2018 and a few variations Done
-    elseif($i -match "([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?)" -and $i -notlike "*undated*"){
+    elseif($i -match $regex_case2 -and $i -notlike "*undated*"){
         $month = $matches[1]; $month2 = $matches[5];
-        if($month){$month = convert-Date $month; $month = "-"+$month;} if($matches[2]){$day = $matches[2];if($day.Length -lt 2){ $day =  ($day).insert(0,'0');} $day = "-"+$day} $year = $matches[3];
-        if($month2){$month2 = convert-Date $month2; $month2 = "-"+$month2;} if($matches[6]){$day2 = $matches[6];if($day2.Length -lt 2){ $day2 =  ($day2).insert(0,'0');}$day2 = "-"+$day2} $year2 = $matches[7];
+        if($month){$month = Convert-Date $month; $month = "-"+$month;} if($matches[2]){$day = $matches[2];if($day.Length -lt 2){ $day =  ($day).insert(0,'0');} $day = "-"+$day} $year = $matches[3];
+        if($month2){$month2 = Convert-Date $month2; $month2 = "-"+$month2;} if($matches[6]){$day2 = $matches[6];if($day2.Length -lt 2){ $day2 =  ($day2).insert(0,'0');}$day2 = "-"+$day2} $year2 = $matches[7];
         if($i -like "*Spring*" -or   $i -like "*Fall*" -or   $i -like "*Summer*" -or   $i -like "*Winter*" ){
             return $($year+"/"+$year2)
         }elseif(!$year){
@@ -419,12 +434,12 @@ $maxyear = $args[2]
         }
     }
     # 3 undated
-    elseif($i -match "(\d{4})?(?:-(\d{4}))?.*(?:\s*and\s*)?undated" -and $i -ne "sfwxyswzFXSXyfqys"){
+    elseif($i -match $regex_case3 -and $i -ne "sfwxyswzFXSXyfqys"){
         $year = $null; $year2=$null;
         if($matches[1]){$year = $matches[1]}
         if($matches[2]){$year2 = $matches[2]}
         if($matches[1] -eq $null -and $matches[2] -eq $null){
-            return $($minyear+"/"+$maxyear)
+            return "$minyear/$maxyear"
         }elseif($year -ne $null -and $year2 -ne $null){
             return $($year+"/"+$year2)
         }else{
@@ -433,22 +448,22 @@ $maxyear = $args[2]
         }
     }
      # 4 c 1790s, and 1790s
-    elseif($i -match "^(c\.?\s+)?(\d{4})s$"){ $year = $matches[2];
-        $year2 = endOfDecade $year
+    elseif($i -match $regex_case4 ){ $year = $matches[2];
+        $year2 = Get-EndOfDecade -Year $year
     return $($year+"/"+ $year2) #>> $outpath
     }
     # 5 1970s-1980s
-    elseif($i -match "^\s*(\d{4})s\s*-\s*(\d{4})s\s*$"){
+    elseif($i -match $regex_case5 ){
         $year = $matches[1];
         $year2 = $matches[2];
-        $year2 = endOfDecade $year2;
+        $year2 = Get-EndOfDecade -Year $year2;
         return $($year+"/"+$year2);
     }
     # 6 October, 2001
-    elseif($i -match "^[a-zA-Z]+,?\s*(\d{4})$" -and   $i -notlike "Spring*" -and   $i -notlike "Fall*" -and   $i -notlike "Summer*" -and   $i -notlike "Winter*" -and   $i -inotlike "circa*"){
+    elseif($i -match $regex_case6 -and   $i -notlike "Spring*" -and   $i -notlike "Fall*" -and   $i -notlike "Summer*" -and   $i -notlike "Winter*" -and   $i -inotlike "circa*"){
         if ($i -match "(^\w+)\b"){ $month = $matches[1]}
         if ($i -match "(\d{4})$"){ $year = $matches[1]}
-        $month = convert-Date $month
+        $month = Convert-Date $month
         return $($year+"-"+$month) 
     }
     # 7 Spring, 2001
@@ -457,28 +472,28 @@ $maxyear = $args[2]
     return $($year )
     }
     # 8 October 16, 2001
-    elseif($i -match "([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*,?\s*(\d{4})"){$year = $matches[3]; $day = $matches[2]; $month = convert-Date $matches[1]; 
+    elseif($i -match  $regex_case8 ){$year = $matches[3]; $day = $matches[2]; $month = Convert-Date $matches[1]; 
         if($day.Length -lt 2){ $day =  ($day).insert(0,'0')}
         return $($year+"-"+$month+"-"+$day) 
     }
     # 9 October 16-18, 2001
-    elseif($i -match "([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*(?:.{1,2})\s*\b(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?,\s*(\d{4})" -and $i -ne "hjnkejmnqwnmswdwfsvbkcfqelourpfvzsnfcgpsckwslrewhyozdhdsnafzojxez"){
-        $year = $matches[4]; $day = $matches[2]; $day2 = $matches[3] ;  $month = convert-Date $matches[1];
+    elseif($i -match $regex_case9 -and $i -ne "hjnkejmnqwnmswdwfsvbkcfqelourpfvzsnfcgpsckwslrewhyozdhdsnafzojxez"){
+        $year = $matches[4]; $day = $matches[2]; $day2 = $matches[3] ;  $month = Convert-Date $matches[1];
         if($day.Length -lt 2){ $day =  ($day).insert(0,'0')}
         if($day2.Length -lt 2){ $day2 =  ($day2).insert(0,'0')}
          
         return $($year+"-"+$month+"-"+$day+"/"+$year+"-"+$month+"-"+$day2) 
     }
     # 10 c. 1945-1947
-    elseif($i -match "^\s*c.\s*(\d{4})\s*-\s*(\d{4})\s*$"){$year = $matches[1]; $year2 = $matches[2];
+    elseif($i -match $regex_case10 ){$year = $matches[1]; $year2 = $matches[2];
         return $($year+"/"+$year2)
     }
     # 11 1945 and c. 1945
-    elseif($i -match "^\s*(?:c.|[cC][iI][Rr][cC][aA].?)?\s*(\d{4})$"){ $year = $matches[1];
+    elseif($i -match $regex_case11  ){ $year = $matches[1];
         return $($year) #>> $outpath
     }
-    # 13 1942, 1045, 1945-1947
-    elseif($i -match "(\d.*\d)"){ $str2 = $matches[1];  
+    # 12 1942, 1045, 1945-1947
+    elseif($i -match  $regex_case12 ){ $str2 = $matches[1];  
         $str2 = $str2 -replace ",\s*|\s*-\s*" , ",";
         $str3 = $str2.Split(",");
         $min = $str3 | measure -Minimum -Maximum;
@@ -490,13 +505,11 @@ $maxyear = $args[2]
     }
    
  }
-
  
 # **************************** Entry Point to Script **********************************
 if( get-module -ListAvailable -Name ImportExcel){}else{
 
 Install-Module ImportExcel -Force}
-
 
 write-host "Processing CSV. Please wait..."
 $file = Get-FileName -initialDirectory "c:fso" 
@@ -504,54 +517,17 @@ $file = Get-FileName -initialDirectory "c:fso"
 
 $csv = Import-Excel -Path $file
  
-
-
-<#
-try{
-if(test-path .\Herald.csv){
-$csv = Import-Csv -Path ".\Herald.csv"
-}else{   write-host "Herald.csv not found…Place file in same directory as script"; Read-Host 'Press enter to close' | Out-Null}
-
-}catch{
-
-
-}#>
-
-
-
-
-
 $minyear = minDate -csv1 $csv -minrun 0
 $maxyear = minDate -csv1 $csv -minrun 1
-#write-host "min $minyear" -BackgroundColor GREEN -ForegroundColor Black
-#write-host "max $maxyear" -BackgroundColor red
-
-
-
-
-
-############################################################
-
-
 
 $outfile = ".\xmlOutput" + $(get-date).Tobinary() + ".xml"
-
 
 $csv | foreach-object {
 
 $_.Title = $_.Title.replace("&","&amp;")
 
-
-
 }
 
-
-#$csv = $scv.replace('&', '&amp;')
-#$csv = (Get-Content $csv2) -replace '&','&amp;'
-#$csv = 
-#$(Get-Content .\file.csv) -replace 'domain\\',''
-
-#$csv[1]
 $count = 1
 $preSer = 0 
 $a = $csv | Measure-Object
@@ -582,14 +558,6 @@ $clevel = $i.'c0#'
         Exit   
         }
         
-        
-    
-    
-
-
-
-
-#write-host "PerSer: " $perSer`r`n "Clevel: " $clevel
     if($perSer -ge $clevel){
         do{
         $("</c0$perSer>") >> $outfile
@@ -597,10 +565,6 @@ $clevel = $i.'c0#'
         }until($perSer+1 -eq $clevel) 
             
         }
-    
-    
-  
-
         
        if($i.Attribute -in ("series", "subseries")){
           if(!$i.'Series ID' -and $i.Attribute -eq "series"){Write-Host "Warning: Series ID Missing for record on line $record - $($i.Title)" -BackgroundColor red -ForegroundColor Black }      
@@ -625,35 +589,43 @@ $clevel = $i.'c0#'
            $("<c0$($clevel) level=""$($i.Attribute)""> <did>
         <container type=""box"">$($i.Box)</container>
         <container type=""folder"">$($i.File)</container>") >> $outfile
-        
+
         if($i."Dspace URL"){
+            $date = $i.Date
+            if ($date -eq "undated") {
+                $date = "0000/0000"
+            } else {
+                $date = codedDate $i.Date $minyear $maxyear
+            }
             
             #Link Title
             $("<unittitle><extref xmlns:xlink=""http://www.w3.org/1999/xlink"" xlink:type=""simple""
             xlink:show=""new"" xlink:actuate=""onRequest""  
             xlink:href=""$($i."Dspace URL")"">$($i.Title+" ")<unitdate era=""ce""
-            calendar=""gregorian"" normal=""$(codedDate $i.Date $minyear $maxyear)"">$($i.Date)</unitdate></extref></unittitle>
-            </did>") >> $outfile}else{
-            
+            calendar=""gregorian"" normal=""$date"">$($i.Date)</unitdate></extref></unittitle>
+            </did>") >> $outfile
+        } else {
+            $date = $i.Date
+            if ($date -eq "undated") {
+                $date = "0000/0000"
+            } else {
+                $date = codedDate $i.Date $minyear $maxyear
+            }
+                    
             #No Link Title
             $("<unittitle>$($i.Title+" ")<unitdate era=""ce""
-            calendar=""gregorian"" normal=""$(codedDate $i.Date $minyear $maxyear)"">$($i.Date)</unitdate></unittitle>
-            </did>") >> $outfile} 
-         }
-            
-<#$next = $count + 1
-if($next.'c0#'-ne 3){write-host "</c02>" -BackgroundColor Green} #close 2 
-if($next.'c0#' -eq 1){write-host "</c01>" -BackgroundColor Yellow}#close 1
-#>
-
+            calendar=""gregorian"" normal=""$date"">$($i.Date)</unitdate></unittitle>
+            </did>") >> $outfile
+        } 
+        
+    }
+           
 $record++
 $perSer = $i.'c0#'
 $perSer = [int]$perSer
 $progressposition++
 $progresspercent = ($progressposition/$a)*100
 }
-
-
 
  do{
         $("</c0$perSer>") >> $outfile
@@ -665,38 +637,7 @@ $progresspercent = ($progressposition/$a)*100
 
         #################################Format Document##########################################
     write-host "Processing Complete!"     
-    #Write-Host "Formatting Document"        
- 
-    #Format XML
-    #Write-Host "Pretty Printer"
-    #Format-Xml (Get-Content $outfile) > $outfile
-
- 
-      
-   <#
-   Write-Host "adding spaces"
-   $outfile = "C:\Users\Micheal\Documents\HaraldComplete\xmlOutput-8586696482193469916.xml"
-$infile = get-content $outfile
-"" > $outfile
-foreach ($line in $infile) {
-    $i = $line ;
-    #$($i)
-    if($i -match "^(\s+)?<\/c\d\d>"){
-    $($i + "`n") >> $outfile 
- }else{
-    $i >> $outfile
- }
- 
- }
-
-    #>
-  
     
-
- 
-
-   
-   
    notepad $outfile
    #pause 
    #Read-Host 'Press enter to close' | Out-Null
