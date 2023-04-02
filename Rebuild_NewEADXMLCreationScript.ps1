@@ -268,23 +268,23 @@ function ConvertToXml {
             #     Write-Host "Warning: Series ID missing for record at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
             # }
             # Checks for High C# 
-            if ($row.'c0#' -gt 6) {
-                Write-Host "Warning: High c# - You may want to check your logic. - c# = $($row.'c0#') at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
+            if ([int]$row.'c0#' -gt 6) {
+                Write-Host "Warning: High c# - You may want to check your logic. - c# = $([int]$row.'c0#') at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
             }
             # Check for Series ID mismatch 
-            if ($row.'Series ID' -or $row.Attribute -eq 'series') {
-                if (($row.'Series ID' -replace '\D', '') -ne $seriesID) { 
-                    if (-not $row.'Series ID' -or $row.'Series ID' -match "^\s*$") {
+            if ($row.'Series ID' -or ($row.Attribute.Trim() -eq 'series')) {
+                if (($row.'Series ID' -ne $null -and ($row.'Series ID'.Trim() -replace '\D', ''))  -ne $seriesID) { 
+                    if (-not $row.'Series ID' -or $row.Attribute.Trim() -match "^\s*$") {
                         $currentSer = "BLANK CELL"
                     }
-                    else{$currentSer = $row.'Series ID'
+                    else{$currentSer = $row.'Series ID'.Trim()
                     }
                     Write-Host "Warning: Series ID mismatch for record at Excel line: $record - ID in Record: $currentSer, ID expected: ser$seriesID." -BackgroundColor Yellow -ForegroundColor Black }
                 ++$seriesID
             }
             # Current C# breaks ascending pattern. 
             if ([int]$row.'c0#' -gt ($prevCNum + 1)){
-                Write-Host "Warning: C# pattern broken on Excel line: $record. Previous value: $prevCnum, Expecting value: $($prevCNum + 1), actual value: $($row.'c0#')."  -BackgroundColor Yellow -ForegroundColor Black 
+                Write-Host "Warning: C# pattern broken on Excel line: $record. Previous value: $prevCnum, Expecting value: $($prevCNum + 1), actual value: $([int]$row.'c0#')."  -BackgroundColor Yellow -ForegroundColor Black 
             }
             
             
@@ -304,13 +304,13 @@ function ConvertToXml {
 
             # Set Series ID 
             if ($row.'Series ID') {
-                $newElement.SetAttribute("id", $row.'Series ID') 
+                $newElement.SetAttribute("id", $row.'Series ID'.Trim()) 
                 
             }
 
             # Set Level
             if ($row.Attribute) {
-                $newElement.SetAttribute("level", $row.'Attribute') 
+                $newElement.SetAttribute("level", $row.'Attribute'.Trim()) 
             }
             
             # Check if the 'Box' header exists
@@ -318,12 +318,12 @@ function ConvertToXml {
                 # Create Container Element.
                 $box = $xml.CreateElement("container")
                 # Add Container  Inner Text
-                $box.InnerText = $row.Box 
+                $box.InnerText = [int]$row.Box 
                 # Add Attribute
                 $box.SetAttribute("type", "box") 
                 $did.AppendChild($box) 
             } # If not series or subseries populate empty value if no value given. 
-            elseif ($row.Attribute -notin 'subseries', 'series') {
+            elseif ($row.Attribute.Trim() -notin 'subseries', 'series') {
                 # Create Container Element.
                 $box = $xml.CreateElement("container")
                 # Add Container  Inner Text
@@ -338,12 +338,12 @@ function ConvertToXml {
                 # Create Container Element.
                 $file = $xml.CreateElement("container")
                 # Add Container  Inner Text
-                $file.InnerText = $row.File
+                $file.InnerText = [int]$row.File
                 # Add Attribute
                 $file.SetAttribute("type", "folder")  
                 $did.InsertAfter($file, $box) 
             } # If not series or subseries populate empty value if no value given. 
-            elseif ($row.Attribute -notin 'subseries', 'series') {
+            elseif ($row.Attribute.Trim() -notin 'subseries', 'series') {
                 # Create Container Element.
                 $file = $xml.CreateElement("container")
                 # Add Container  Inner Text
@@ -367,10 +367,10 @@ function ConvertToXml {
                 $extRef.SetAttribute("xlink:type", "simple")
                 $extRef.SetAttribute("xlink:show", "new")
                 $extRef.SetAttribute("xlink:actuate", "onRequest")
-                $extRef.SetAttribute("xlink:href", $row.'Dspace URL')
+                $extRef.SetAttribute("xlink:href", $row.'Dspace URL'.Trim())
 
                 # Set 'unittitle' text
-                $extRef.InnerText = $row.'Title'
+                $extRef.InnerText = $row.'Title'.Trim()
 
                 # Check if 'unitdate' exists
                 if ($row.'Date') {
@@ -378,8 +378,8 @@ function ConvertToXml {
                     $unitDate = $xml.CreateElement("unitdate")
                     $unitDate.SetAttribute("era", "ce")
                     $unitDate.SetAttribute("calendar", "gregorian")
-                    $unitDate.SetAttribute("normal", $(codedDate $($row.'Date')))
-                    $unitDate.InnerText = $row.'Date'
+                    $unitDate.SetAttribute("normal", $(codedDate ($([string]$row.'Date').Trim())))
+                    $unitDate.InnerText = ($([string]$row.'Date').Trim())
 
                     # Append 'unitdate' to 'extref'
                     $extRef.AppendChild($unitDate)
@@ -390,7 +390,7 @@ function ConvertToXml {
             }
             else {
                 # Set 'unittitle' text
-                $unitTitle.InnerText = $row.'Title'
+                $unitTitle.InnerText = $row.'Title'.Trim()
 
                 # Check if 'unitdate' exists
                 if ($row.'Date') {
@@ -398,9 +398,8 @@ function ConvertToXml {
                     $unitDate = $xml.CreateElement("unitdate")
                     $unitDate.SetAttribute("era", "ce")
                     $unitDate.SetAttribute("calendar", "gregorian")
-                    $unitDate.SetAttribute("normal", $(codedDate $($row.'Date')))
-                    $unitDate.InnerText = $row.'Date'
-
+                    $unitDate.SetAttribute("normal", $(codedDate ($([string]$row.'Date').Trim())))
+                    $unitDate.InnerText = ($([string]$row.'Date').Trim())
                     $unitTitle.AppendChild($unitDate)
                 }
             }
