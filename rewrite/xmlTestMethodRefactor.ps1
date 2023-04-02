@@ -48,10 +48,11 @@ $elementStack = New-Object System.Collections.Generic.Stack[System.Xml.XmlElemen
 $rootElement = $xml.CreateElement("RootElement")
 $xml.AppendChild($rootElement) | Out-Null
 
+$record = 2
 function ConvertToXml {
     param(
-        [Parameter(Mandatory=$true)] $csvFile,
-        [Parameter(Mandatory=$true)] $xml
+        [Parameter(Mandatory = $true)] $csvFile,
+        [Parameter(Mandatory = $true)] $xml
     )
 
 
@@ -78,8 +79,25 @@ function ConvertToXml {
             continue
         }
 
+        
+        # Data Checks
 
-        #$rowNumber = $_.psobject.Properties.Value.IndexOf($row) + 1
+        # Check for required informaiton 
+        if ([string]::IsNullOrEmpty($row.Attribute) -or [string]::IsNullOrEmpty($row.'c0#') -or [string]::IsNullOrEmpty($row.Title)) {
+            write-host "Error: Required record information missing for record around line $record" -BackgroundColor Red  -ForegroundColor Black;
+            Read-Host 'Press enter to close' | Out-Null
+            Exit   
+        }# Checks for Missing Series ID
+        elseif ([string]::IsNullOrEmpty($row.'Series ID') -and $row.Attribute -eq "series") {
+            Write-Host "Warning: Series ID missing for record near line $record - $($row.Title)" -BackgroundColor Yellow -ForegroundColor Black
+        }# Checks for High C# 
+        if($row.'c0#' -gt 6){
+            Write-Host "Warning: High c# - You may want to check your logic. - c# = $($row.'c0#') near line $record - $($row.Title)" -BackgroundColor Yellow -ForegroundColor Black
+        }
+            
+        ++$record
+
+        
         # Get the hierarchy level and inner text from the CSV row
         $cNum = "{0:D2}" -f [int]$row.'c0#'
         
@@ -116,14 +134,16 @@ function ConvertToXml {
             $box.InnerText = $row.Box 
             # Add Attribute
             $box.SetAttribute("type", "box") 
-            $newElement.AppendChild($box) 
+            $did.AppendChild($box) 
         } # If not series or subseries populate empty value if no value given. 
         elseif ($row.Attribute -notin 'subseries', 'series') {
             # Create Container Element.
             $box = $xml.CreateElement("container")
+            # Add Container  Inner Text
+            $box.InnerText = ""
             # Add Attribute
             $box.SetAttribute("type", "box")  
-            $newElement.AppendChild($box) 
+            $did.AppendChild($box) 
         }
 
         # Check if the 'File' header exists
@@ -134,37 +154,72 @@ function ConvertToXml {
             $file.InnerText = $row.File
             # Add Attribute
             $file.SetAttribute("type", "folder")  
-            $newElement.InsertAfter($file, $box) 
+            $did.InsertAfter($file, $box) 
         } # If not series or subseries populate empty value if no value given. 
         elseif ($row.Attribute -notin 'subseries', 'series') {
             # Create Container Element.
             $file = $xml.CreateElement("container")
             # Add Container  Inner Text
-            $file.InnerText = $null
+            $file.InnerText = ""
             # Add Attribute
             $file.SetAttribute("type", "folder")  
-            $newElement.AppendChild($file) 
+            $did.InsertAfter($file, $box) 
         }
 
         # Check if the 'Title' header exists
         if ($row.Title) {
             # Create the 'unittitle' child element of 'did' and set its inner text
             $unittitle = $xml.CreateElement("unittitle")
-            $unittitle.InnerText = $row.'Title'
-            $did.AppendChild($unittitle) 
+            #$unittitle.InnerText = $row.'Title'
+            
         }
 
-        # Check if the 'Date' header exists
-        if ($row.Date) {
-            # Create unitdate Element.
-            $unitdate = $xml.CreateElement("unitdate")
-            # Add Inner Text
-            $unitdate.InnerText = $row.Date 
-            # Add Attribute
-            $unitdate.SetAttribute("calendar", "gregorian")  
-            $unitdate.SetAttribute("normal", "")  
-            $unittitle.InsertAfter($unitdate, $unittitle.LastChild) 
+        # Check if 'extref' exists
+        if ($row.'Dspace URL') {
+            # Create 'extref' element
+            $extRef = $xml.CreateElement("extref")
+            $extRef.SetAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink")
+            $extRef.SetAttribute("xlink:type", "simple")
+            $extRef.SetAttribute("xlink:show", "new")
+            $extRef.SetAttribute("xlink:actuate", "onRequest")
+            $extRef.SetAttribute("xlink:href", $row.'Dspace URL')
+
+            # Set 'unittitle' text
+            $extRef.InnerText = $row.'Title'
+
+            # Check if 'unitdate' exists
+            if ($row.'Date') {
+                # Create 'unitdate' element
+                $unitDate = $xml.CreateElement("unitdate")
+                $unitDate.SetAttribute("era", "ce")
+                $unitDate.SetAttribute("calendar", "gregorian")
+                $unitDate.SetAttribute("normal", $row.'Date')
+                $unitDate.InnerText = $row.'Date'
+
+                # Append 'unitdate' to 'extref'
+                $extRef.AppendChild($unitDate)
+            }
+
+            # Append 'extref' to 'unittitle'
+            $unitTitle.AppendChild($extRef)
         }
+        else {
+            # Set 'unittitle' text
+            $unitTitle.InnerText = $row.'Title'
+
+            # Check if 'unitdate' exists
+            if ($row.'Date') {
+                # Create and append 'unitdate' element
+                $unitDate = $xml.CreateElement("unitdate")
+                $unitDate.SetAttribute("era", "ce")
+                $unitDate.SetAttribute("calendar", "gregorian")
+                $unitDate.SetAttribute("normal", $row.'Date')
+                $unitDate.InnerText = $row.'Date'
+
+                $unitTitle.AppendChild($unitDate)
+            }
+        }
+        $did.AppendChild($unittitle) 
         
         # Handle the hierarchy
         if ($elementStack.Count -eq 0) {
@@ -191,7 +246,7 @@ function ConvertToXml {
         $elementStack.Push($newElement)
         
     }
-
+ 
 }
 
 
