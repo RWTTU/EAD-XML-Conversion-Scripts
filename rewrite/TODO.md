@@ -1,5 +1,10 @@
 # XML 
 
+## Based on error in spread sheet 
+- [ ]
+## error if series nubmer is skiped 
+- [v] 
+
 ## fix relation
 - [v]
 Fix container and did relationship

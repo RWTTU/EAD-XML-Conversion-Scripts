@@ -49,6 +49,7 @@ $rootElement = $xml.CreateElement("RootElement")
 $xml.AppendChild($rootElement) | Out-Null
 
 $record = 2
+$seriesID = 1
 function ConvertToXml {
     param(
         [Parameter(Mandatory = $true)] $csvFile,
@@ -93,8 +94,12 @@ function ConvertToXml {
         }# Checks for High C# 
         if($row.'c0#' -gt 6){
             Write-Host "Warning: High c# - You may want to check your logic. - c# = $($row.'c0#') near line $record - $($row.Title)" -BackgroundColor Yellow -ForegroundColor Black
+        }#Check for Series ID mismatch 
+        if($row.'Series ID' -or $row.Attribute -eq 'series'){
+            if (($row.'Series ID' -replace '\D','') -ne $seriesID){Write-Host "Warning: Series ID mismatch for record near line $record - ID in Record =  $($row.'Series ID') :: ID expected = ser$seriesID" -BackgroundColor Yellow -ForegroundColor Black}
+            ++$seriesID
         }
-            
+        
         ++$record
 
         
@@ -119,6 +124,7 @@ function ConvertToXml {
         # Set Series ID 
         if ($row.'Series ID') {
             $newElement.SetAttribute("id", $row.'Series ID') 
+            
         }
 
         # Set Level
