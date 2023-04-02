@@ -255,7 +255,7 @@ function ConvertToXml {
             }
 
             
-            # Data Checks
+            # Data Checks - Errors and Warnings
 
             # Check for required informaiton 
             if ([string]::IsNullOrEmpty($row.Attribute) -or [string]::IsNullOrEmpty($row.'c0#') -or [string]::IsNullOrEmpty($row.Title)) {
@@ -264,16 +264,25 @@ function ConvertToXml {
                 $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
                 exit   
             }# Checks for Missing Series ID
-            elseif ([string]::IsNullOrEmpty($row.'Series ID') -and $row.Attribute -eq "series") {
-                Write-Host "Warning: Series ID missing for record at Excel line: $record - $($row.Title)" -BackgroundColor Yellow -ForegroundColor Black
-            }# Checks for High C# 
+            # if ([string]::IsNullOrEmpty($row.'Series ID') -and $row.Attribute -eq "series") {
+            #     Write-Host "Warning: Series ID missing for record at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
+            # }
+            # Checks for High C# 
             if ($row.'c0#' -gt 6) {
-                Write-Host "Warning: High c# - You may want to check your logic. - c# = $($row.'c0#') at Excel line: $record - $($row.Title)" -BackgroundColor Yellow -ForegroundColor Black
-            }#Check for Series ID mismatch 
+                Write-Host "Warning: High c# - You may want to check your logic. - c# = $($row.'c0#') at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
+            }
+            # Check for Series ID mismatch 
             if ($row.'Series ID' -or $row.Attribute -eq 'series') {
-                if (($row.'Series ID' -replace '\D', '') -ne $seriesID) { Write-Host "Warning: Series ID mismatch for record at Excel line: $record - ID in Record =  $($row.'Series ID') :: ID expected = ser$seriesID" -BackgroundColor Yellow -ForegroundColor Black }
+                if (($row.'Series ID' -replace '\D', '') -ne $seriesID) { 
+                    if (-not $row.'Series ID' -or $row.'Series ID' -match "^\s*$") {
+                        $currentSer = "BLANK CELL"
+                    }
+                    else{$currentSer = $row.'Series ID'
+                    }
+                    Write-Host "Warning: Series ID mismatch for record at Excel line: $record - ID in Record: $currentSer, ID expected: ser$seriesID." -BackgroundColor Yellow -ForegroundColor Black }
                 ++$seriesID
             }
+            # Current C# breaks ascending pattern. 
             if ([int]$row.'c0#' -gt ($prevCNum + 1)){
                 Write-Host "Warning: C# pattern broken on Excel line: $record. Previous value: $prevCnum, Expecting value: $($prevCNum + 1), actual value: $($row.'c0#')."  -BackgroundColor Yellow -ForegroundColor Black 
             }
