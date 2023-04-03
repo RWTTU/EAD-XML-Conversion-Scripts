@@ -223,8 +223,8 @@ $elementStack = New-Object System.Collections.Generic.Stack[System.Xml.XmlElemen
 $rootElement = $xml.CreateElement("RootElement")
 $xml.AppendChild($rootElement) | Out-Null
 
-
-
+# Warning Flag - Halt at end if true
+$global:warnMsg = 0
 
 function ConvertToXml {
     param(
@@ -240,6 +240,7 @@ function ConvertToXml {
     $record = 1
     $seriesID = 1
     $prevCNum
+    
     # Start message
     Write-Host "Starting the script..." -ForegroundColor Green
 
@@ -264,6 +265,7 @@ function ConvertToXml {
             # If every cell is empty, blank or contains only spaces, skip the row
             if ($allCellsEmpty) {
                 Write-Host "Warning: Blank row at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
+                $global:warnMsg = 1
                 continue
             }
 
@@ -279,10 +281,12 @@ function ConvertToXml {
             }# Checks for Missing Series ID
             # if ([string]::IsNullOrEmpty($row.'Series ID') -and $row.Attribute -eq "series") {
             #     Write-Host "Warning: Series ID missing for record at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
+            #     $warnMsg = 1  
             # }
             # Checks for High C# 
             if ([int]$row.'c0#' -gt 6) {
                 Write-Host "Warning: High c# - You may want to check your logic. - c# = $([int]$row.'c0#') at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
+                $global:warnMsg = 1
             }
             # Check for Series ID mismatch 
             if ($row.'Series ID' -or ($row.Attribute.Trim() -eq 'series')) {
@@ -292,12 +296,16 @@ function ConvertToXml {
                     }
                     else{$currentSer = $row.'Series ID'.Trim()
                     }
-                    Write-Host "Warning: Series ID mismatch for record at Excel line: $record - ID in Record: $currentSer, ID expected: ser$seriesID." -BackgroundColor Yellow -ForegroundColor Black }
+                    Write-Host "Warning: Series ID mismatch for record at Excel line: $record - ID in Record: $currentSer, ID expected: ser$seriesID." -BackgroundColor Yellow -ForegroundColor Black 
+                    $global:warnMsg = 1
+                }
+                    
                 ++$seriesID
             }
             # Current C# breaks ascending pattern. 
             if ([int]$row.'c0#' -gt ($prevCNum + 1)){
                 Write-Host "Warning: C# pattern broken on Excel line: $record. Previous value: $prevCnum, Expecting value: $($prevCNum + 1), actual value: $([int]$row.'c0#')."  -BackgroundColor Yellow -ForegroundColor Black 
+                $global:warnMsg = 1
             }
             
             
@@ -462,6 +470,7 @@ function ConvertToXml {
 # File Output #
 ###############
 
+
 # Call the ConvertToXml function with the $csvFile and $xml
 ConvertToXml -csvFile $csvFile -xml $xml | Out-Null
 
@@ -480,7 +489,6 @@ $fileName = $fileNamePrefix + "-" + $fileSuffix + ".xml"
 $relPath = ".\"
 $filePath = "$relPath$fileNAme"
 $fullPath = "$(Resolve-Path $relPath)\$fileName"
-#$filePath = $fullPath
 
 # Save the XML document to a file
 try {
@@ -524,14 +532,14 @@ catch {
     exit
 }
 
-
-
 # Stop message
 Write-Host "Script completed. Results written to: $fileName" -ForegroundColor Green
 
-
-# Pause at the end
-# Write-Host "Press any key to exit and open the output file..."
-# $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+# Pause at the end if warnings happened during run. 
+if($warnMsg -eq 1){
+    Write-Host "Warnings occoured during run."
+    Write-Host "Press any key to exit and open the output file..."
+    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+}
 
 notepad.exe $fullPath
