@@ -45,18 +45,31 @@ else {
 }
 
 # Import the Excel document using the selected file path
-try {
-    # Filter out blank rows using the Where-Object cmdlet
-    $excelFile = Import-Excel -Path $filePath
-    #$csvFile = $excelFile #| Where-Object { $_.PSObject.Properties.Value -notcontains "" }
-    $csvFile = $excelFile | Where-Object { ($_.PSObject.Properties.Value | ForEach-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0 }
+
+try{
+    # Try to load workbook with sheet called template.
+    $csvFile = Import-Excel -Path $filePath -WorksheetName "Template" -DataOnly
 }
 catch {
-    Write-Host "Error importing Excel file: $_" -ForegroundColor Red
-    Write-Host "Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    exit
+    # Handle exception from the first operation
+    Write-Host "Template sheet not found." -ForegroundColor Yellow
+    try {
+        Write-Host "Looking for data in Sheet1." -ForegroundColor Yellow
+        $csvFile = Import-Excel -Path $filePath -DataOnly
+    }
+    catch {
+        $lineNumber = $_.InvocationInfo.ScriptLineNumber
+        Write-Host "Error importing Excel file:" -ForegroundColor Red
+        Write-Host "Error at Powershell line: $lineNumber" -ForegroundColor Red
+        Write-Host "Error message: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+        exit
+    }
 }
+
+
+
 
 
 ##############################
