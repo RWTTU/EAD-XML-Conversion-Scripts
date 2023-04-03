@@ -213,6 +213,11 @@ function codedDate($i) {
 }
 
 
+function Set-WarningMsgFlag {
+    $global:warnMsg = 1
+}
+
+
 # Create a new XML document
 $xml = New-Object System.Xml.XmlDocument
 
@@ -246,6 +251,17 @@ function ConvertToXml {
 
     foreach ($row in $csvFile) {
               
+        # Set Vars 
+
+        $vSeriesID = if ($row."Series ID") { [string]$row."Series ID".Trim() }
+        $vAttribute = if ($row.Attribute) { [string]$row.Attribute.Trim() }
+        $vC0 = if ($row."c0#") { [int]$row."c0#" }
+        $vBox = if ($row.Box) { [int]$row.Box }
+        $vFile = if ($row.File) { [int]$row.File}
+        $vTitle = if ($row.Title) { [string]$row.Title.Trim() }
+        $vDate = if ($row.Date) { ($([string]$row.'Date').Trim()) }
+        $vDspaceURL = if ($row."Dspace URL") { [string]$row."Dspace URL".Trim() }
+
         # Increase count of record to help identify errors.
         ++$record
         
@@ -265,7 +281,7 @@ function ConvertToXml {
             # If every cell is empty, blank or contains only spaces, skip the row
             if ($allCellsEmpty) {
                 Write-Host "Warning: Blank row at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
-                $global:warnMsg = 1
+                Set-WarningMsgFlag
                 continue
             }
 
@@ -279,42 +295,42 @@ function ConvertToXml {
                 $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
                 exit   
             }# Checks for Missing Series ID
-            # if ([string]::IsNullOrEmpty($row.'Series ID') -and $row.Attribute -eq "series") {
+            # if ([string]::IsNullOrEmpty($vSeriesID) -and $vAttribute -eq "series") {
             #     Write-Host "Warning: Series ID missing for record at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
-            #     $warnMsg = 1  
+            #    Set-WarningMsgFlag
             # }
             # Checks for High C# 
-            if ([int]$row.'c0#' -gt 6) {
-                Write-Host "Warning: High c# - You may want to check your logic. - c# = $([int]$row.'c0#') at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
-                $global:warnMsg = 1
+            if ($vC0 -gt 6) {
+                Write-Host "Warning: High c# - You may want to check your logic. - c# = $vC0 at Excel line: $record" -BackgroundColor Yellow -ForegroundColor Black
+                Set-WarningMsgFlag
             }
             # Check for Series ID mismatch 
-            if ($row.'Series ID' -or ($row.Attribute.Trim() -eq 'series')) {
-                if (($row.'Series ID' -ne $null -and ($row.'Series ID'.Trim() -replace '\D', ''))  -ne $seriesID) { 
-                    if (-not $row.'Series ID' -or $row.Attribute.Trim() -match "^\s*$") {
+            if ($row.'Series ID' -or ($vAttribute -eq 'series')) {
+                if (($row.'Series ID' -ne $null -and ($vSeriesID -replace '\D', ''))  -ne $seriesID) { 
+                    if (-not $row.'Series ID' -or $vAttribute -match "^\s*$") {
                         $currentSer = "BLANK CELL"
                     }
-                    else{$currentSer = $row.'Series ID'.Trim()
+                    else{$currentSer = $vSeriesID
                     }
                     Write-Host "Warning: Series ID mismatch for record at Excel line: $record - ID in Record: $currentSer, ID expected: ser$seriesID." -BackgroundColor Yellow -ForegroundColor Black 
-                    $global:warnMsg = 1
+                    Set-WarningMsgFlag
                 }
                     
                 ++$seriesID
             }
             # Current C# breaks ascending pattern. 
-            if ([int]$row.'c0#' -gt ($prevCNum + 1)){
-                Write-Host "Warning: C# pattern broken on Excel line: $record. Previous value: $prevCnum, Expecting value: $($prevCNum + 1), actual value: $([int]$row.'c0#')."  -BackgroundColor Yellow -ForegroundColor Black 
-                $global:warnMsg = 1
+            if ($vC0 -gt ($prevCNum + 1)){
+                Write-Host "Warning: C# pattern broken on Excel line: $record. Previous value: $prevCnum, Expecting value: $($prevCNum + 1), actual value: $vC0."  -BackgroundColor Yellow -ForegroundColor Black 
+                Set-WarningMsgFlag
             }
             
             
             # Starting XML Building
             
             # Get the hierarchy level and inner text from the CSV row
-            $cNum = "{0:D2}" -f [int]$row.'c0#'
+            $cNum = "{0:D2}" -f $vC0
             
-            $hierarchy = [int]$row.'c0#'
+            $hierarchy = $vC0
             
             # Create a new cNum element
             $newElement = $xml.CreateElement("c${cNum}")
@@ -325,13 +341,13 @@ function ConvertToXml {
 
             # Set Series ID 
             if ($row.'Series ID') {
-                $newElement.SetAttribute("id", $row.'Series ID'.Trim()) 
+                $newElement.SetAttribute("id", $vSeriesID ) 
                 
             }
 
             # Set Level
             if ($row.Attribute) {
-                $newElement.SetAttribute("level", $row.'Attribute'.Trim()) 
+                $newElement.SetAttribute("level", $vAttribute) 
             }
             
             # Check if the 'Box' header exists
@@ -339,12 +355,12 @@ function ConvertToXml {
                 # Create Container Element.
                 $box = $xml.CreateElement("container")
                 # Add Container  Inner Text
-                $box.InnerText = [int]$row.Box 
+                $box.InnerText = $vBox
                 # Add Attribute
                 $box.SetAttribute("type", "box") 
                 $did.AppendChild($box) 
             } # If not series or subseries populate empty value if no value given. 
-            elseif ($row.Attribute.Trim() -notin 'subseries', 'series') {
+            elseif ($vAttribute -notin 'subseries', 'series') {
                 # Create Container Element.
                 $box = $xml.CreateElement("container")
                 # Add Container  Inner Text
@@ -359,12 +375,12 @@ function ConvertToXml {
                 # Create Container Element.
                 $file = $xml.CreateElement("container")
                 # Add Container  Inner Text
-                $file.InnerText = [int]$row.File
+                $file.InnerText = $vFile
                 # Add Attribute
                 $file.SetAttribute("type", "folder")  
                 $did.InsertAfter($file, $box) 
             } # If not series or subseries populate empty value if no value given. 
-            elseif ($row.Attribute.Trim() -notin 'subseries', 'series') {
+            elseif ($vAttribute -notin 'subseries', 'series') {
                 # Create Container Element.
                 $file = $xml.CreateElement("container")
                 # Add Container  Inner Text
@@ -388,10 +404,10 @@ function ConvertToXml {
                 $extRef.SetAttribute("xlink:type", "simple")
                 $extRef.SetAttribute("xlink:show", "new")
                 $extRef.SetAttribute("xlink:actuate", "onRequest")
-                $extRef.SetAttribute("xlink:href", $row.'Dspace URL'.Trim())
+                $extRef.SetAttribute("xlink:href", $vDspaceURL)
 
                 # Set 'unittitle' text
-                $extRef.InnerText = $row.'Title'.Trim()
+                $extRef.InnerText = $vTitle
 
                 # Check if 'unitdate' exists
                 if ($row.'Date') {
@@ -399,8 +415,8 @@ function ConvertToXml {
                     $unitDate = $xml.CreateElement("unitdate")
                     $unitDate.SetAttribute("era", "ce")
                     $unitDate.SetAttribute("calendar", "gregorian")
-                    $unitDate.SetAttribute("normal", $(codedDate ($([string]$row.'Date').Trim())))
-                    $unitDate.InnerText = ($([string]$row.'Date').Trim())
+                    $unitDate.SetAttribute("normal", $(codedDate $vDate))
+                    $unitDate.InnerText = ($vDate)
 
                     # Append 'unitdate' to 'extref'
                     $extRef.AppendChild($unitDate)
@@ -411,7 +427,7 @@ function ConvertToXml {
             }
             else {
                 # Set 'unittitle' text
-                $unitTitle.InnerText = $row.'Title'.Trim()
+                $unitTitle.InnerText = $vTitle
 
                 # Check if 'unitdate' exists
                 if ($row.'Date') {
@@ -419,8 +435,8 @@ function ConvertToXml {
                     $unitDate = $xml.CreateElement("unitdate")
                     $unitDate.SetAttribute("era", "ce")
                     $unitDate.SetAttribute("calendar", "gregorian")
-                    $unitDate.SetAttribute("normal", $(codedDate ($([string]$row.'Date').Trim())))
-                    $unitDate.InnerText = ($([string]$row.'Date').Trim())
+                    $unitDate.SetAttribute("normal", $(codedDate $vDate))
+                    $unitDate.InnerText = ($vDate)
                     $unitTitle.AppendChild($unitDate)
                 }
             }
@@ -450,7 +466,7 @@ function ConvertToXml {
             # Push the new element onto the stack
             $elementStack.Push($newElement)
 
-            $prevCNum = [int]$row.'c0#'
+            $prevCNum = $vC0
         }
         catch {
             $lineNumber = $_.InvocationInfo.ScriptLineNumber
