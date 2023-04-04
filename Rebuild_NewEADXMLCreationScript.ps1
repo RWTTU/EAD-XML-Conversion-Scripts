@@ -488,7 +488,19 @@ function ConvertToXml {
 
 
 # Call the ConvertToXml function with the $csvFile and $xml
-ConvertToXml -csvFile $csvFile -xml $xml | Out-Null
+try {
+    ConvertToXml -csvFile $csvFile -xml $xml | Out-Null
+}
+catch {
+    $lineNumber = $_.InvocationInfo.ScriptLineNumber
+    Write-Host "Error at Powershell line: $lineNumber" -ForegroundColor Red
+    Write-Host "Error message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+    exit
+}
+
+
 
 # Find full path from relative path. Some functions don't work correctly with the relative path. 
 
@@ -534,7 +546,20 @@ catch {
 }
 
 # Remove the first and last line from the content
-$content = $content[1..($content.Length - 2)]
+
+try {
+    $content = $content[1..($content.Length - 2)]
+}
+catch {
+    $lineNumber = $_.InvocationInfo.ScriptLineNumber
+    Write-Host "Error at Powershell line: $lineNumber" -ForegroundColor Red
+    Write-Host "Error message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+    exit
+}
+
+
 
 # Save the updated content to the file
 try {
