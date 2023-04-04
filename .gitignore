@@ -1,3 +1,4 @@
 /test
 xmlOutput-*
 foo*.xml
+.venv
