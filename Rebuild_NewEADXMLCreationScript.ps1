@@ -515,9 +515,8 @@ $fileSuffix = (Get-Date).ToString("yyyy_MM_dd-HHmm_ss_fff")
 
 $fileName = $fileNamePrefix + "-" + $fileSuffix + ".xml"
 $relPath = ".\"
-$filePath = "$relPath$fileNAme"
-$fullPath = $filePath
-#$fullPath = "$(Resolve-Path $relPath)\$fileName"
+$filePath = "$relPath$fileName"
+$fullPath = Join-Path -Path $PSScriptRoot -ChildPath $fileName
 
 # Save the XML document to a file
 try {
