@@ -306,7 +306,7 @@ function ConvertToXml {
             }
             # Check for Series ID mismatch 
             if ($row.'Series ID' -or ($vAttribute -eq 'series')) {
-                if (($row.'Series ID' -ne $null -and ($vSeriesID -replace '\D', ''))  -ne $seriesID) { 
+                if (-not $vSeriesID -or (($vSeriesID -replace '\D', '')  -ne $seriesID)) { 
                     if (-not $row.'Series ID' -or $vAttribute -match "^\s*$") {
                         $currentSer = "BLANK CELL"
                     }
@@ -504,7 +504,8 @@ $fileSuffix = (Get-Date).ToString("yyyy_MM_dd-HHmm_ss_fff")
 $fileName = $fileNamePrefix + "-" + $fileSuffix + ".xml"
 $relPath = ".\"
 $filePath = "$relPath$fileNAme"
-$fullPath = "$(Resolve-Path $relPath)\$fileName"
+$fullPath = $filePath
+#$fullPath = "$(Resolve-Path $relPath)\$fileName"
 
 # Save the XML document to a file
 try {
@@ -557,5 +558,10 @@ if($warnMsg -eq 1){
     Write-Host "Press any key to exit and open the output file..."
     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 }
+
+## Debug - Uncomment these lines to pause script before exit. 
+# Write-Host "Press any key to exit and open the output file..."
+# $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+
 
 notepad.exe $fullPath
