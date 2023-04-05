@@ -29,33 +29,47 @@ def endOfDecade(year):
     year += 9
     return year
 
-def coded_date(i):
+def codedDate(i):
 
+    # Patterns 
+    #i = "input string" # replace with your input string
+    
+    
     # Undated 
     if i == 'undated':
         return '0000/0000'
     # October-December, 2001
-    elif re.match(r"([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\\s*(\d{4})", i):
-        (month, year, month2, year) = re.findall(r"([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\s*(\d{4})", i)[0]
-        month = month[:3]
-        month2 = month2[:3]
+    elif re.match(r'([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\\s*(\d{4})', i):
+        matches = re.search(r"([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\s*(\d{4})", i)
+        year = matches[3]
+        month = convert_Date (matches[1])
+        month2 = convert_Date (matches[2])
+        
         return f"{year}-{month}/{year}-{month2}"
 
     # January 24, 2014 - February 24, 2018 and a few variations Done
-    elif re.match(r"([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?)", i) and 'undated' not in i:
-        (month, day, year, month2, day2, year2) = re.findall(r"([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?)", i)[0]
-        month = month[:3]
-        month2 = month2[:3]
-        day = '-'+day if day else ''
-        day2 = '-'+day2 if day2 else ''
-        if 'Spring' in i or 'Fall' in i or 'Summer' in i or 'Winter' in i:
-            return f"{year}/{year2}"
-        elif not year:
-            return f"{year2}{month}{day}/{year2}{month2}{day2}"
-        elif year2:
-            return f"{year}{month}{day}/{year2}{month2}{day2}"
-        else:
+    elif matches1 and "undated" not in i:
+        
+        month, day, year, month2, day2, year2 = matches1.groups()
+        if month:
+            month = datetime.strptime(month, "%B").strftime("-%m")
+        if day:
+            day = "-" + "0" + day if len(day) < 2 else "-" + day
+        if year and not year2:
             return f"{year}{month}{day}/{year}{month2}{day2}"
+        elif year2 and not year:
+            return f"{year2}{month}{day}/{year2}{month2}{day2}"
+        elif year and year2:
+            if "Spring" in i or "Summer" in i or "Fall" in i or "Winter" in i:
+                return f"{year}/{year2}"
+            return f"{year}{month}{day}/{year2}{month2}{day2}"
+       
+
+   
+
+
+#if re.search(r"([a-zA-Z]+)\s*,?\s\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-zA-Z]+)\s*,?\s\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s,?\s*(\d{4})?)", i) and "undated" not in i:
+    
 
     # Date and Undated
     elif re.match(r"(\d{4})?(?:-(\d{4}))?.*(?:\s*and\\s*)?undated", i) and 'sfwxyswzFXSXyfqys' not in i:
@@ -147,193 +161,195 @@ def convert_to_xml(csv_file, xml):
         # Increase count of record to help identify errors.
         record += 1
         
-        try:
-            # Set a flag to determine if every cell is empty, blank, or contains only spaces
-            all_cells_empty = True
+        # try:
+        #     # Set a flag to determine if every cell is empty, blank, or contains only spaces
+        #     all_cells_empty = True
                         
-            # Loop through each property (cell) for the current row
-            for property in row:
-                # Check if the cell value is not null, not empty, and contains more than just spaces
-                if property and str(property).strip():
-                    all_cells_empty = False
-                    break
+        #     # Loop through each property (cell) for the current row
+        #     for property in row:
+        #         # Check if the cell value is not null, not empty, and contains more than just spaces
+        #         if property and str(property).strip():
+        #             all_cells_empty = False
+        #             break
             
-            # If every cell is empty, blank or contains only spaces, skip the row
-            if all_cells_empty:
-                print(f"Warning: Blank row at Excel line: {record}", flush=True)
-                continue
+        #     # If every cell is empty, blank or contains only spaces, skip the row
+        #     if all_cells_empty:
+        #         print(f"Warning: Blank row at Excel line: {record}", flush=True)
+        #         continue
             
-            # Data Checks - Errors and Warnings
+        #     # Data Checks - Errors and Warnings
             
-            # Check for required information
-            if not v_attribute or not v_c0 or not v_title:
-                print(f"Error: Required record information missing for record at Excel line: {record}", flush=True)
-                print("Press any key to exit...")
-                input()
-                exit()
+        #     # Check for required information
+        #     if not v_attribute or not v_c0 or not v_title:
+        #         print(f"Error: Required record information missing for record at Excel line: {record}", flush=True)
+        #         print("Press any key to exit...")
+        #         input()
+        #         exit()
                 
-            # Checks for High C#
-            if v_c0 > 6:
-                print(f"Warning: High c# - You may want to check your logic. - c# = {v_c0} at Excel line: {record}", flush=True)
+        #     # Checks for High C#
+        #     if v_c0 > 6:
+        #         print(f"Warning: High c# - You may want to check your logic. - c# = {v_c0} at Excel line: {record}", flush=True)
             
-            # Check for Series ID mismatch
-            if row["Series ID"] or (v_attribute == "series"):
-                if not v_series_id or (re.sub("\D", "", v_series_id) != str(series_id)):
-                    current_ser = "BLANK CELL" if not row["Series ID"] or (not v_attribute) else v_series_id
-                    print(f"Warning: Series ID mismatch for record at Excel line: {record} - ID in Record: {current_ser}, ID expected: ser{series_id}.", flush=True)
+        #     # Check for Series ID mismatch
+        #     if row["Series ID"] or (v_attribute == "series"):
+        #         if not v_series_id or (re.sub("\D", "", v_series_id) != str(series_id)):
+        #             current_ser = "BLANK CELL" if not row["Series ID"] or (not v_attribute) else v_series_id
+        #             print(f"Warning: Series ID mismatch for record at Excel line: {record} - ID in Record: {current_ser}, ID expected: ser{series_id}.", flush=True)
                 
-                series_id += 1
+        #         series_id += 1
             
-            # Current C# breaks ascending pattern.
-            if v_c0 and (v_c0 > prev_c_num + 1):
-                print(f"Warning: C# pattern broken on Excel line: {record}. Previous value: {prev_c_num}, Expecting value: {prev_c_num + 1}, actual value: {v_c0}.", flush=True)
+        #     # Current C# breaks ascending pattern.
+        #     if v_c0 and (v_c0 > prev_c_num + 1):
+        #         print(f"Warning: C# pattern broken on Excel line: {record}. Previous value: {prev_c_num}, Expecting value: {prev_c_num + 1}, actual value: {v_c0}.", flush=True)
             
             # Starting XML Building
             
-            # Get the hierarchy level and inner text from the CSV row
-            c_num = f"{v_c0:02d}" if v_c0 else None
+        # Get the hierarchy level and inner text from the CSV row
+        c_num = f"{v_c0:02d}" if v_c0 else None
+        
+        hierarchy = v_c0
+        
+        # Create a new cNum element
+        new_element = xml.createElement(f"c{c_num}")
+        
+        # Create the 'did' element for new element.
+        did = xml.createElement("did")
+        new_element.appendChild(did)
+        
+        # Set Series ID
+        if v_series_id:
+            new_element.setAttribute("id", v_series_id) 
             
-            hierarchy = v_c0
+        # Set Level
+        if v_attribute:
+            new_element.setAttribute("level", v_attribute) 
+        
+        # Check if the 'Box' header exists
+        if v_box:
+            # Create Container Element.
+            box = xml.createElement("container")
+            # Add Container Inner Text
+            box_text = str(v_box) if v_box else ""
+            box.appendChild(xml.createTextNode(box_text))
+            # Add Attribute
+            box.setAttribute("type", "box") 
+            did.appendChild(box) 
             
-            # Create a new cNum element
-            new_element = xml.createElement(f"c{c_num}")
+        # If not series or subseries populate empty value if no value given. 
+        elif v_attribute not in ['subseries', 'series']:
+            # Create Container Element.
+            box = xml.createElement("container")
+            # Add Container Inner Text
+            box.appendChild(xml.createTextNode(""))
+            # Add Attribute
+            box.setAttribute("type", "box") 
+            did.appendChild(box)
             
-            # Create the 'did' element for new element.
-            did = xml.createElement("did")
-            new_element.appendChild(did)
+        # Check if the 'File' header exists
+        if v_file:
+            # Create Container Element.
+            file = xml.createElement("container")
+            # Add Container Inner Text
+            file_text = str(v_file) if v_file else ""
+            file.appendChild(xml.createTextNode(file_text))
+            # Add Attribute
+            file.setAttribute("type", "folder")  
+            did.insertBefore(file, box)
             
-            # Set Series ID
-            if row["Series ID"]:
-                new_element.setAttribute("id", v_series_id) 
-                
-            # Set Level
-            if row.Attribute:
-                new_element.setAttribute("level", v_attribute) 
+        # If not series or subseries populate empty value if no value given. 
+        elif v_attribute not in ['subseries', 'series']:
+            # Create Container Element.
+            file = xml.createElement("container")
+            # Add Container Inner Text
+            file.appendChild(xml.createTextNode(""))
+            # Add Attribute
+            file.setAttribute("type", "folder")  
+            did.insertBefore(file, box)
             
-            # Check if the 'Box' header exists
-            if row.Box:
-                # Create Container Element.
-                box = xml.createElement("container")
-                # Add Container Inner Text
-                box_text = str(v_box) if v_box else ""
-                box.appendChild(xml.createTextNode(box_text))
-                # Add Attribute
-                box.setAttribute("type", "box") 
-                did.appendChild(box) 
-                
-            # If not series or subseries populate empty value if no value given. 
-            elif v_attribute not in ['subseries', 'series']:
-                # Create Container Element.
-                box = xml.createElement("container")
-                # Add Container Inner Text
-                box.appendChild(xml.createTextNode(""))
-                # Add Attribute
-                box.setAttribute("type", "box") 
-                did.appendChild(box)
-                
-            # Check if the 'File' header exists
-            if row.File:
-                # Create Container Element.
-                file = xml.createElement("container")
-                # Add Container Inner Text
-                file_text = str(v_file) if v_file else ""
-                file.appendChild(xml.createTextNode(file_text))
-                # Add Attribute
-                file.setAttribute("type", "folder")  
-                did.insertBefore(file, box)
-                
-            # If not series or subseries populate empty value if no value given. 
-            elif v_attribute not in ['subseries', 'series']:
-                # Create Container Element.
-                file = xml.createElement("container")
-                # Add Container Inner Text
-                file.appendChild(xml.createTextNode(""))
-                # Add Attribute
-                file.setAttribute("type", "folder")  
-                did.insertBefore(file, box)
-                
-            # Check if the 'Title' header exists
-            if row.Title:
-                # Create the 'unittitle' child element of 'did' and set its inner text
-                unittitle = xml.createElement("unittitle")
-            
-            # Check if 'extref' exists
-            if row["Dspace URL"]:
-                # Create 'extref' element
-                ext_ref = xml.createElement("extref")
-                ext_ref.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink")
-                ext_ref.setAttribute("xlink:type", "simple")
-                ext_ref.setAttribute("xlink:show", "new")
-                ext_ref.setAttribute("xlink:actuate", "onRequest")
-                ext_ref.setAttribute("xlink:href", v_dspace_url)
+        # Check if the 'Title' header exists
+        if v_title:
+            # Create the 'unittitle' child element of 'did' and set its inner text
+            unittitle = xml.createElement("unittitle")
+        
+        # Check if 'extref' exists
+        if v_dspace_url:
+            # Create 'extref' element
+            ext_ref = xml.createElement("extref")
+            ext_ref.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink")
+            ext_ref.setAttribute("xlink:type", "simple")
+            ext_ref.setAttribute("xlink:show", "new")
+            ext_ref.setAttribute("xlink:actuate", "onRequest")
+            ext_ref.setAttribute("xlink:href", v_dspace_url)
 
-                # Set 'unittitle' text
-                ext_ref_text = v_title if v_title else ""
-                ext_ref.appendChild(xml.createTextNode(ext_ref_text))
+            # Set 'unittitle' text
+            ext_ref_text = v_title if v_title else ""
+            ext_ref.appendChild(xml.createTextNode(ext_ref_text))
 
-                # Check if 'unitdate' exists
-                if row.Date:
-                    # Create 'unitdate' element
-                    unit_date = xml.createElement("unitdate")
-                    unit_date.setAttribute("era", "ce")
-                    unit_date.setAttribute("calendar", "gregorian")
-                    unit_date.setAttribute("normal", codedDate(v_date))
-                    unit_date.appendChild(xml.createTextNode(v_date))
+            # Check if 'unitdate' exists
+            if v_date:
+                # Create 'unitdate' element
+                unit_date = xml.createElement("unitdate")
+                unit_date.setAttribute("era", "ce")
+                unit_date.setAttribute("calendar", "gregorian")
+                unit_date.setAttribute("normal", v_date)
+                #unit_date.setAttribute("normal", codedDate(v_date))
+                unit_date.appendChild(xml.createTextNode(v_date))
 
-                    # Append 'unitdate' to 'extref'
-                    ext_ref.appendChild(unit_date)
+                # Append 'unitdate' to 'extref'
+                ext_ref.appendChild(unit_date)
 
-                # Append 'extref' to 'unittitle'
-                unittitle.appendChild(ext_ref)
-            
-            else:
-                # Set 'unittitle' text
-                unittitle_text = v_title if v_title else ""
-                unittitle.appendChild(xml.createTextNode(unittitle_text))
+            # Append 'extref' to 'unittitle'
+            unittitle.appendChild(ext_ref)
+        
+        else:
+            # Set 'unittitle' text
+            unittitle_text = v_title if v_title else ""
+            unittitle.appendChild(xml.createTextNode(unittitle_text))
 
-                # Check if 'unitdate' exists
-                if row.Date:
-                    # Create and append 'unitdate' element
-                    unit_date = xml.createElement("unitdate")
-                    unit_date.setAttribute("era", "ce")
-                    unit_date.setAttribute("calendar", "gregorian")
-                    unit_date.setAttribute("normal", codedDate(v_date))
-                    unit_date.appendChild(xml.createTextNode(v_date))
-                    unittitle.appendChild(unit_date)
+            # Check if 'unitdate' exists
+            if v_date:
+                # Create and append 'unitdate' element
+                unit_date = xml.createElement("unitdate")
+                unit_date.setAttribute("era", "ce")
+                unit_date.setAttribute("calendar", "gregorian")
+                unit_date.setAttribute("normal", v_date)
+                #unit_date.setAttribute("normal", codedDate(v_date))
+                unit_date.appendChild(xml.createTextNode(v_date))
+                unittitle.appendChild(unit_date)
+        
+        did.appendChild(unittitle) 
+        
+        # Handle the hierarchy
+        if len(element_stack) == 0:
+            # If the stack is empty, add the element as a child of the root
+            rootElement.appendChild(new_element) 
             
-            did.appendChild(unittitle) 
+        elif hierarchy and (hierarchy < int(element_stack[-1].nodeName[1:])):
+            # If the hierarchy is less than the current open element, close the open element and add the new element
+            while hierarchy < int(element_stack[-1].nodeName[1:]):
+                element_stack.pop()
+                
+            element_stack[-1].appendChild(new_element)
             
-            # Handle the hierarchy
-            if len(element_stack) == 0:
-                # If the stack is empty, add the element as a child of the root
-                root_element.appendChild(new_element) 
-                
-            elif hierarchy and (hierarchy < int(element_stack[-1].nodeName[1:])):
-                # If the hierarchy is less than the current open element, close the open element and add the new element
-                while hierarchy < int(element_stack[-1].nodeName[1:]):
-                    element_stack.pop()
-                    
-                element_stack[-1].appendChild(new_element)
-                
-            elif hierarchy and (hierarchy == int(element_stack[-1].nodeName[1:])):
-                # If the hierarchy is equal to the current open element, add the new element as a sibling
-                element_stack[-2].appendChild(new_element)
-                
-            elif hierarchy and (hierarchy > int(element_stack[-1].nodeName[1:])):
-                # If the hierarchy is greater than the current open element, add the new element as a child of the current open element
-                element_stack[-1].appendChild(new_element)
-                
-            # Add the new element to the stack of open elements
-            element_stack.append(new_element)
+        elif hierarchy and (hierarchy == int(element_stack[-1].nodeName[1:])):
+            # If the hierarchy is equal to the current open element, add the new element as a sibling
+            # append to parent of last element in stack
+            element_stack[-1].parentNode.appendChild(new_element)
+        elif hierarchy and (hierarchy > int(element_stack[-1].nodeName[1:])):
+            # If the hierarchy is greater than the current open element, add the new element as a child of the current open element
+            element_stack[-1].appendChild(new_element)
             
-            # Set the previous c# to the current to use in comparison in the next iteration
-            prev_c_num = v_c0
-            
-        except BaseException as e:
-            print(str(e))
-            print(f"Error: Could not process record at Excel line: {record}", flush=True)
-            input()
-            exit()
+        # Add the new element to the stack of open elements
+        element_stack.append(new_element)
+        
+        # Set the previous c# to the current to use in comparison in the next iteration
+        prev_c_num = v_c0
+        
+        # except BaseException as e:
+        #     print(str(e))
+        #     print(f"Error: Could not process record at Excel line: {record}", flush=True)
+        #     input()
+        #     exit()
 
 
 
