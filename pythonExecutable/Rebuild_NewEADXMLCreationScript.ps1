@@ -112,14 +112,30 @@ function codedDate($i) {
 
     }
     elseif ($i -match "([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\s*(\d{4})") {
-        $year = $matches[3]; $month = convert-Date $matches[1]; $month2 = convert-Date $matches[2];
+        $year = $matches[3]; 
+        $month = convert-Date $matches[1]; 
+        $month2 = convert-Date $matches[2];
         return $($year + "-" + $month + "/" + $year + "-" + $month2) 
     }
     # 2 January 24, 2014 - February 24, 2018 and a few variations Done
     elseif ($i -match "([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?)" -and $i -notlike "*undated*") {
-        $month = $matches[1]; $month2 = $matches[5];
-        if ($month) { $month = convert-Date $month; $month = "-" + $month; } if ($matches[2]) { $day = $matches[2]; if ($day.Length -lt 2) { $day = ($day).insert(0, '0'); } $day = "-" + $day } $year = $matches[3];
-        if ($month2) { $month2 = convert-Date $month2; $month2 = "-" + $month2; } if ($matches[6]) { $day2 = $matches[6]; if ($day2.Length -lt 2) { $day2 = ($day2).insert(0, '0'); }$day2 = "-" + $day2 } $year2 = $matches[7];
+        $month = $matches[1]; 
+        $month2 = $matches[5];
+        if ($month) { 
+            $month = convert-Date $month; 
+            $month = "-" + $month; } 
+        if ($matches[2]) { 
+            $day = $matches[2]; 
+            if ($day.Length -lt 2) { $day = ($day).insert(0, '0'); } 
+            $day = "-" + $day } 
+        $year = $matches[3];
+        if ($month2) { 
+            $month2 = convert-Date $month2; 
+            $month2 = "-" + $month2; } 
+        if ($matches[6]) { $day2 = $matches[6]; 
+            if ($day2.Length -lt 2) { $day2 = ($day2).insert(0, '0'); }
+            $day2 = "-" + $day2 } 
+        $year2 = $matches[7];
         if ($i -like "*Spring*" -or $i -like "*Fall*" -or $i -like "*Summer*" -or $i -like "*Winter*" ) {
             return $($year + "/" + $year2)
         }

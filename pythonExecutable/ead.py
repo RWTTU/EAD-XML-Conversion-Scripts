@@ -30,109 +30,129 @@ def endOfDecade(year):
     return year
 
 def codedDate(i):
-
-    # Patterns 
-    #i = "input string" # replace with your input string
-    
     
     # Undated 
     if i == 'undated':
         return '0000/0000'
-    # October-December, 2001
-    elif re.match(r'([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\\s*(\d{4})', i):
-        matches = re.search(r"([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\s*(\d{4})", i)
-        year = matches[3]
-        month = convert_Date (matches[1])
-        month2 = convert_Date (matches[2])
-        
-        return f"{year}-{month}/{year}-{month2}"
-
-    # January 24, 2014 - February 24, 2018 and a few variations Done
-    elif matches1 and "undated" not in i:
-        
-        month, day, year, month2, day2, year2 = matches1.groups()
+    
+    # 1 October-December, 2001
+    elif re.search(r"([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\s*(\d{4})",i):
+        match = re.search(r"([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\s*(\d{4})",i)
+        year = match.group(3); 
+        month = convert_Date(match.group(1)); 
+        month2 = convert_Date(match.group(2))
+        return str(year) + "-" + str(month) + "/" + str(year) + "-" + str(month2)
+    # 2 January 24, 2014 - February 24, 2018 and a few variations Done
+    elif re.search(r"([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?)",i) and not re.search("undated",i):
+        match = re.search(r"([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-zA-Z]+)\s*,?\s*\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s*,?\s*(\d{4})?)",i)
+        month = match.group(1); 
+        month2 = match.group(5)
         if month:
-            month = datetime.strptime(month, "%B").strftime("-%m")
-        if day:
-            day = "-" + "0" + day if len(day) < 2 else "-" + day
-        if year and not year2:
-            return f"{year}{month}{day}/{year}{month2}{day2}"
-        elif year2 and not year:
-            return f"{year2}{month}{day}/{year2}{month2}{day2}"
-        elif year and year2:
-            if "Spring" in i or "Summer" in i or "Fall" in i or "Winter" in i:
-                return f"{year}/{year2}"
-            return f"{year}{month}{day}/{year2}{month2}{day2}"
-       
-
-   
-
-
-#if re.search(r"([a-zA-Z]+)\s*,?\s\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s,?\s*(\d{4})?(\s*.{1,2}\b\s*([a-zA-Z]+)\s*,?\s\b(\d{1,2})?(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\b\s,?\s*(\d{4})?)", i) and "undated" not in i:
-    
-
-    # Date and Undated
-    elif re.match(r"(\d{4})?(?:-(\d{4}))?.*(?:\s*and\\s*)?undated", i) and 'sfwxyswzFXSXyfqys' not in i:
-        (year, year2) = re.findall(r"(\d{4})?(?:-(\d{4}))?.*(?:\s*and\s*)?undated", i)[0]
-        if year and year2:
-            return f"{year}/{year2}"
+            month = convert_Date(month); month = "-" + month
+        if match.group(2):
+            day = match.group(2)
+            if len(day) < 2:
+                day = day.insert(0, '0')
+            day = "-" + day 
+        year = match.group(3)
+        if month2:
+            month2 = convert_Date(month2); 
+            month2 = "-" + month2
+        if match.group(6):
+            day2 = match.group(6)
+            if len(day2) < 2:
+                day2 = day2.insert(0, '0')
+            day2 = "-" + day2 
+        year2 = match.group(7)
+        if re.search("(spring|summer|fall|winter)",i.lower()):
+        #if (i like "*Spring*" or i like "*Fall*" or i like "*Summer*" or i like "*Winter*"):
+            return str(year) + "/" + str(year2)
+        elif not year:
+            return str(year2) + str(month) + str(day) + "/" + str(year2) + str(month2) + str(day2)
+        elif year2:
+            return  str(year) + str(month) + str(day) + "/" + str(year2) + str(month2) + str(day2)
         else:
-            return f"{year}"
-
-    # c 1790s, and 1790s
-    elif re.match(r"^(c\.?\s+)?(\d{4})s$", i):
-        year = int(re.findall(r"^(c\.?\s+)?(\d{4})s$", i)[0][1])
-        year2 = (year//10)*10+9
+            return  str(year) + str(month) + str(day) + "/" + str(year) + str(month2) + str(day2)
+    # 3 undated
+    elif re.search("r(\d{4})?(?:-(\d{4}))?.*(?:\s*and\s*)?undated",i) and i not in "sfwxyswzFXSXyfqys":
+        match = re.search("r(\d{4})?(?:-(\d{4}))?.*(?:\s*and\s*)?undated",i)
+        year = None; year2 = None
+        if match.group(1):
+            year = match.group(1)
+        if match.group(2):
+            year2 = match.group(2)
+            
+        if year and year2:
+            return str(year) + "/" + str(year2)
+        else:
+            return str(year)
+    # 4 c 1790s, and 1790s
+    elif re.search(r"^(c\.?\s+)?(\d{4})s$",i):
+        match = re.search(r"^(c\.?\s+)?(\d{4})s$",i)
+        year = match.group(2)
+        year2 = endOfDecade(year)
+        return str(year) + "/" + str(year2) 
+    # 5 1970s-1980s
+    elif re.search(r"^\s*(\d{4})s\s*-\s*(\d{4})s\s*$",i):
+        match = re.search(r"^\s*(\d{4})s\s*-\s*(\d{4})s\s*$",i)
+        year = match.group(1)
+        year2 = match.group(2)
+        year2 = endOfDecade(year2)
+        return str(year) + "/" + str(year2)
+    # 6 October, 2001
+    elif re.search(r"^[a-zA-Z]+,?\s*(\d{4})$",i) and not re.search(r'(spring|summer|fall|winter)',i.lower()) and not re.search("^circa",i.lower()) :
+        match = re.search(r"^[a-zA-Z]+,?\s*(\d{4})$",i)
+        month = None; year = None
+        if re.search(r"(^\w+)\b",i): 
+            match = re.search(r"(^\w+)\b",i)
+            month = convert_Date(match.group(1))       
+        if re.search(r"(\d{4})",i): 
+            match = re.search(r"(\d{4})",i)
+            year = match.group(1)
+        
+        return str(year) + "-" + str(month)
+    # 7 Spring, 2001
+    elif re.search(r'spring|summer|fall|winter',i.lower()):
+        match = re.search("(\d{4})$",i)
+        if match.group(1):
+            year = match.group(1)
+        return str(year)
+    # 8 October 16, 2001
+    elif re.search(r"([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*,?\s*(\d{4})",i):
+        match = re.search(r"([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*,?\s*(\d{4})",i)
+        year = match.group(3); day = match.group(2); month = convert_Date(match.group(1)); 
+        if len(day) < 2:
+            day = day.insert(0, '0')
+        return str(year) + "-" + str(month) + "-" + str(day)
+    # 9 October 16-18, 2001
+    elif re.search(r"([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*(?:.{1,2})\s*\b(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?,\s*(\d{4})",i) and i not in "hjnkejmnqwnmswdwfsvbkcfqelourpfvzsnfcgpsckwslrewhyozdhdsnafzojxez":
+        match = re.search(r"([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*(?:.{1,2})\s*\b(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?,\s*(\d{4})",i)
+        year = match.group(4); day = match.group(2); day2 = match.group(3) ; month = convert_Date(match.group(1))
+        if len(day) < 2:
+            day = day.insert(0, '0')
+        if len(day2) < 2:
+            day2 = day2.insert(0, '0')
+        return str(year) + "-" + str(month) + "-" + str(day) + "/" + str(year) + "-" + str(month) + "-" + str(day2) 
+    # 10 c. 1945-1947
+    elif re.search(r"^\s*c.\s*(\d{4})\s*-\s*(\d{4})\\s*$",i):
+        match = re.search(r"^\s*c.\s*(\d{4})\s*-\s*(\d{4})\s*$",i)
+        year = match.group(1); year2 = match.group(2)
+        return str(year) + "/" + str(year2)
+    # 11 1945 and c. 1945
+    elif re.search(r"^\s*(?:c\.|[cC][iI][Rr][cC][aA].?)?\s*(\d{4})$", i):
+        match = re.search(r"^\s*(?:c\.|[cC][iI][Rr][cC][aA].?)?\s*(\d{4})$", i)
+        year = match.group(1)
+        return str(year)
+    # 13 1942, 1045, 1945-1947
+    elif re.search(r"(\d.*\d)", i):
+        match = re.search(r"(\d.*\d)", i)
+        str2 = match.group(1)
+        str2 = re.sub(r",\s|\s*-\s*", ",", str2)
+        str3 = str2.split(",")
+        year = min(map(int, str3))
+        year2 = max(map(int, str3))
         return f"{year}/{year2}"
 
-    # 1970s-1980s
-    elif re.match(r"^\s*(\d{4})s\s*-\s*(\d{4})s\\s*$", i):
-        (year, year2) = re.findall(r"^\s*(\d{4})s\s*-\s*(\d{4})s\s*$", i)[0]
-        year2 = int(f"{year2[:3]}9")
-        return f"{year}/{year2}"
-
-    # October, 2001
-    elif re.match("^[a-zA-Z]+,?\s*(\d{4})$", i) and 'Spring' not in i and 'Fall' not in i and 'Summer' not in i and 'Winter' not in i and 'circa' not in i.lower():
-        (month, year) = re.findall("^[a-zA-Z]+,?\s*(\d{4})$", i)[0]
-        month = month[:3]
-        return f"{year}-{month}"
-
-    # Spring, 2001
-    elif 'Spring' in i or 'Fall' in i or 'Summer' in i or 'Winter' in i:
-        year = re.findall("(\d{4})$", i)[0]
-        return f"{year}"
-
-    # October 16, 2001
-    elif re.match("([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*,?\s*(\d{4})", i):
-        (month, day, year) = re.findall("([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*,?\s*(\d{4})", i)[0]
-        month = month[:3]
-        day = f"-{'0'+day[-1] if len(day) == 1 else day}"
-        return f"{year}-{month}{day}"
-    
-    # October 16-18, 2001
-    elif re.match("([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*(?:.{1,2})\s*\b(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?,\s*(\d{4})", i) and 'hjnkejmnqwnmswdwfsvbkcfqelourpfvzsnfcgpsckwslrewhyozdhdsnafzojxez' not in i:
-        (month, day, month2, day2, year) = re.findall("([a-zA-Z]+)\s*(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?\s*(?:.{1,2})\s*\b(\d{1,2})(?:[nN][dD]|[sS][tT]|[rR][dD]|[tT][hH])?,\s*(\d{4})", i)[0]
-        month = month[:3]
-        day = f"-{'0'+day[-1] if len(day) == 1 else day}"
-        day2 = f"-{'0'+day2[-1] if len(day2) == 1 else day2}"
-        return f"{year}-{month}{day}/{year}-{month}{day2}"
-    
-    # c. 1945-1947
-    elif re.match("^\s*c.\s*(\d{4})\s*-\s*(\d{4})\\s*$", i):
-        (year, year2) = re.findall("^\s*c.\s*(\d{4})\s*-\s*(\d{4})\s*$", i)[0]
-        return f"{year}/{year2}"
-    
-    # 1945 and c. 1945
-    elif re.match("^\s*(?:c.|[cC][iI][Rr][cC][aA].?)?\s*(\d{4})$", i):
-        year = re.findall("^\s*(?:c.|[cC][iI][Rr][cC][aA].?)?\s*(\d{4})$", i)[0]
-        return f"{year}"
-    
-    # 1942, 1045, 1945-1947
-    elif re.match("(\d.*\d)", i):
-        years = sorted(re.findall(r"\d{4}", i))
-        min_year = years[0]
-        max_year = years[-1]
-        return f"{min_year}/{max_year}" 
 
 ## Main Loop Function
 
@@ -291,8 +311,8 @@ def convert_to_xml(csv_file, xml):
                 unit_date = xml.createElement("unitdate")
                 unit_date.setAttribute("era", "ce")
                 unit_date.setAttribute("calendar", "gregorian")
-                unit_date.setAttribute("normal", v_date)
-                #unit_date.setAttribute("normal", codedDate(v_date))
+                #unit_date.setAttribute("normal", v_date)
+                unit_date.setAttribute("normal", codedDate(v_date))
                 unit_date.appendChild(xml.createTextNode(v_date))
 
                 # Append 'unitdate' to 'extref'
@@ -312,8 +332,8 @@ def convert_to_xml(csv_file, xml):
                 unit_date = xml.createElement("unitdate")
                 unit_date.setAttribute("era", "ce")
                 unit_date.setAttribute("calendar", "gregorian")
-                unit_date.setAttribute("normal", v_date)
-                #unit_date.setAttribute("normal", codedDate(v_date))
+                #unit_date.setAttribute("normal", v_date)
+                unit_date.setAttribute("normal", codedDate(v_date))
                 unit_date.appendChild(xml.createTextNode(v_date))
                 unittitle.appendChild(unit_date)
         
@@ -367,27 +387,18 @@ if "template" in workbook.sheetnames:
 else:
     sheet = workbook.active
 
-
-
 # Create the XML document
 # Example of usage
 xml_doc = minidom.Document()
 rootElement = xml_doc.createElement("RootElement")
 xml_doc.appendChild(rootElement)
 
-
 # Convert to XML 
 convert_to_xml(sheet, xml_doc)
 
-
-
-
 # Save the XML document
-
 with open('c:\git\output_file.xml', 'w') as f:
     f.write(xml_doc.toprettyxml(indent="  "))   
-
-
 
 # xml_file_path = "c:\git\testxml.xml"
 # with open(xml_file_path, "wb") as f:
