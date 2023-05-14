@@ -106,9 +106,10 @@ function endOfDecade {
 
     
 function codedDate($i) {
+
     # 1 October-December, 2001
     if ( $i -eq 'undated') {
-        return "0000/0000"
+        return "REPLACEMEASUNDATED"
 
     }
     elseif ($i -match "([a-zA-Z]+).?\s*-\s*([a-zA-Z]+)\s*.?\s*(\d{4})") {
@@ -246,6 +247,8 @@ function ConvertToXml {
     $seriesID = 1
     $prevCNum
     
+
+    
     # Start message
     Write-Host "Starting the script..." -ForegroundColor Green
 
@@ -261,6 +264,7 @@ function ConvertToXml {
         $vTitle = if ($row.Title) { [string]$row.Title.Trim() }
         $vDate = if ($row.Date) { ($([string]$row.'Date').Trim()) }
         $vDspaceURL = if ($row."Dspace URL") { [string]$row."Dspace URL".Trim() }
+
 
         # Increase count of record to help identify errors.
         ++$record
@@ -327,6 +331,21 @@ function ConvertToXml {
             
             # Starting XML Building
             
+            # Get years 
+
+            if ($vDate) {
+                $v_codedDate = codedDate $vDate
+            }
+
+            if ($vDate)  {
+                $yearMatches = [regex]::Matches($v_codedDate, '\b\d{4}\b')
+                foreach ($match in $yearMatches) {
+                    if ($match.Value -ne '0000') {
+                        $years.Add($match.Value) | Out-Null
+                    }
+                }
+            }
+
             # Get the hierarchy level and inner text from the CSV row
             $cNum = "{0:D2}" -f $vC0
             
@@ -489,6 +508,7 @@ function ConvertToXml {
 
 # Call the ConvertToXml function with the $csvFile and $xml
 try {
+    $years = New-Object System.Collections.ArrayList # Array to hold total amount of years 
     ConvertToXml -csvFile $csvFile -xml $xml | Out-Null
 }
 catch {
@@ -572,6 +592,30 @@ catch {
     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     exit
 }
+
+# Replace undated
+
+# Assuming $years is an array or ArrayList of years
+$minYear = $years | Measure-Object -Minimum | ForEach-Object { $_.Minimum }
+$maxYear = $years | Measure-Object -Maximum | ForEach-Object { $_.Maximum }
+
+# Using -f operator for string formatting
+$undatedVar = 'undated{0}/{1}' -f $minYear, $maxYear
+
+# Or using string concatenation
+
+$filePath1 = $fullPath
+$find = 'normal="REPLACEMEASUNDATED"'
+$replace = 'normal="' + $minYear + '/' + $maxYear + '"'
+
+# Get the file content
+$content = Get-Content $filePath1
+
+# Replace the text
+$content = $content -replace $find, $replace
+
+# Write the content back to the file
+$content | Set-Content $filePath1
 
 # Stop message
 Write-Host "Script completed. Results written to: $fileName" -ForegroundColor Green
