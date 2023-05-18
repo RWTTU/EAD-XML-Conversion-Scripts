@@ -596,17 +596,26 @@ catch {
 # Replace undated
 
 # Assuming $years is an array or ArrayList of years
+if ($years){
 $minYear = $years | Measure-Object -Minimum | ForEach-Object { $_.Minimum }
 $maxYear = $years | Measure-Object -Maximum | ForEach-Object { $_.Maximum }
+$replace = 'normal="' + $minYear + '/' + $maxYear + '"'
+}else{
+    $replace = 'normal="0000/0000"'
+
+}
+
 
 # Using -f operator for string formatting
-$undatedVar = 'undated{0}/{1}' -f $minYear, $maxYear
+#$undatedVar = 'undated{0}/{1}' -f $minYear, $maxYear
 
 # Or using string concatenation
 
 $filePath1 = $fullPath
 $find = 'normal="REPLACEMEASUNDATED"'
-$replace = 'normal="' + $minYear + '/' + $maxYear + '"'
+
+
+
 
 # Get the file content
 $content = Get-Content $filePath1
